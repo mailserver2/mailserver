@@ -1,5 +1,6 @@
-language: bash
-sudo: required
+os:
+- linux
+language: shell
 services:
 - docker
 script:
