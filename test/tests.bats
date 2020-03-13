@@ -1615,18 +1615,13 @@ load 'test_helper/bats-assert/load'
   assert_success
 }
 
-@test "checking clamav: mirrors.dat exist" {
-  run docker exec mailserver_default [ -f /var/lib/clamav/mirrors.dat ]
-  assert_success
-}
-
 @test "checking clamav: default lib directory is a symlink" {
   run docker exec mailserver_default [ -L /var/lib/clamav ]
   assert_success
 }
 
 @test "checking clamav: Eicar-Test-Signature FOUND" {
-  run docker exec mailserver_default grep -i 'Eicar-Test-Signature(.*) FOUND' /var/log/mail.log
+  run docker exec mailserver_default grep -i 'EICAR.TEST.3.UNOFFICIAL(.*) FOUND' /var/log/mail.log
   assert_success
 }
 
