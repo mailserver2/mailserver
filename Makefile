@@ -36,12 +36,12 @@ init:
 		-e POSTGRES_USER=postfix \
 		-e POSTGRES_PASSWORD=testpasswd \
 		-v "`pwd`/test/config/postgres":/docker-entrypoint-initdb.d \
-		-t postgres:10.5-alpine
+		-t postgres:12-alpine
 
 	docker run \
 		-d \
 		--name redis \
-		-t redis:4.0-alpine
+		-t redis:5.0-alpine
 
 	docker run \
 		-d \
