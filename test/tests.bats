@@ -1323,7 +1323,7 @@ load 'test_helper/bats-assert/load'
 }
 
 @test "checking postfix: milter-reject - clamav virus found" {
-  run docker exec mailserver_default grep -i 'milter-reject.*clamav: virus found' /var/log/mail.log
+  run docker exec mailserver_default grep -i 'milter-reject.*Spam message rejected; from=<virus@gmail.com>' /var/log/mail.log
   assert_success
 }
 
