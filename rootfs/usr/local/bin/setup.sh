@@ -657,6 +657,7 @@ mkdir -p /var/mail/rspamd /var/log/rspamd /run/rspamd
 chown -R _rspamd:_rspamd /var/mail/rspamd /var/log/rspamd /run/rspamd /var/mail/dkim
 chmod 750 /var/mail/rspamd /var/log/rspamd
 
+# Fix old DKIM keys permissions
 chmod 444 /var/mail/dkim/*/*.public.key
 chmod 440 /var/mail/dkim/*/*.private.key
 
@@ -762,12 +763,6 @@ sed -i 's|rsyslog-rotate|rsyslog-rotate \&>/dev/null|g' /etc/logrotate.d/rsyslog
 # Folders and permissions
 mkdir -p /var/run/fetchmail
 chmod +x /usr/local/bin/*
-
-# Fix old DKIM keys permissions
-# Moved to rspamd
-# chown -R vmail:vmail /var/mail/dkim
-# chmod 444 /var/mail/dkim/*/*.public.key
-# chmod 440 /var/mail/dkim/*/*.private.key
 
 # Ensure that hashes are calculated because Postfix require directory
 # to be set up like this in order to find CA certificates.
