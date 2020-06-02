@@ -1,40 +1,30 @@
-defaultEntryPoints = ["https","http"]
+## static configuration
 
-[api]
-entryPoint = "traefik"
-dashboard = true
+[entryPoints.websecure]
+address = ":443"
 
-[entryPoints]
-  [entryPoints.http]
-  address = ":80"
-    [entryPoints.http.redirect]
-    entryPoint = "https"
-  [entryPoints.https]
-  address = ":443"
-    [entryPoints.https.tls]
-    minVersion = "VersionTLS12"
-    cipherSuites = [
-      "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305",
-      "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-      "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-      "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-      "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-      "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA"
-    ]
-  [entryPoints.traefik]
-  address = ":8080"
-  [entryPoints.traefik.auth.basic]
-  users = ["admin:{SHA}jLIjfQZ5yojbZGTqxg2pY0VROWQ="]
+[entryPoints.web]
+address = ":80"
+[entryPoints.web.http.redirections.entryPoint]
+to = "websecure"
 
-[acme]
-email = "{{ EMAIL }}"
-storage = "/etc/traefik/acme/acme.json"
-entryPoint = "https"
-onHostRule = true
-  [acme.tlsChallenge]
+[providers.docker]
+exposedByDefault=false
 
-[docker]
-endpoint = "unix:///var/run/docker.sock"
-domain = "{{ DOMAIN }}"
-watch = true
-exposedbydefault = false
+[providers.file]
+filename = "/file.toml"
+
+
+[log]
+#level = "DEBUG"
+
+[accessLog]
+
+#[api]
+#insecure = true
+
+[certificatesResolvers.letsencrypt.acme]
+email = "admin@domain.com"
+#caserver= "https://acme-staging-v02.api.letsencrypt.org/directory"
+storage = "/acme/acme.json"
+[certificatesResolvers.letsencrypt.acme.tlsChallenge]
