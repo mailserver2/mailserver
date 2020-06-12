@@ -1,7 +1,6 @@
-FROM mailserver2/debian-mail-overlay:latest
+FROM mailserver2/debian-mail-overlay:1.0.0
 
-LABEL description="Simple and full-featured mail server using Docker" \
-      maintainer="Hardware <contact@meshup.net>"
+LABEL description="Simple and full-featured mail server using Docker"
 
 ARG DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1

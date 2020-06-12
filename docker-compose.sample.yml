@@ -33,7 +33,7 @@ services:
       - http_network
 
   mailserver:
-    image: hardware/mailserver:${MAILSERVER_DOCKER_TAG}
+    image: mailserver2/mailserver:${MAILSERVER_DOCKER_TAG}
     restart: ${RESTART_MODE}
     domainname: ${MAILSERVER_DOMAIN}                    # Mail server A/MX/FQDN & reverse PTR = mail.domain.tld.
     hostname: ${MAILSERVER_HOSTNAME}
@@ -82,7 +82,7 @@ services:
   # http://postfixadmin.sourceforge.net/
   # Configuration : https://github.com/hardware/mailserver/wiki/Postfixadmin-initial-configuration
   postfixadmin:
-    image: hardware/postfixadmin
+    image: mailserver2/postfixadmin:${POSTFIXADMIN_DOCKER_TAG}
     restart: ${RESTART_MODE}
     domainname: ${MAILSERVER_DOMAIN}
     hostname: ${MAILSERVER_HOSTNAME}
@@ -105,7 +105,7 @@ services:
   # https://www.rainloop.net/
   # Configuration : https://github.com/hardware/mailserver/wiki/Rainloop-initial-configuration
   rainloop:
-    image: hardware/rainloop
+    image: mailserver2/rainloop:${RAINLOOP_DOCKER_TAG}
     restart: ${RESTART_MODE}
     labels:
       - traefik.enable=true
