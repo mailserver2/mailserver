@@ -1879,13 +1879,13 @@ load 'test_helper/bats-assert/load'
 }
 
 @test "checking unbound: server is running and unbound-control works" {
-  run docker exec -ti mailserver_default unbound-control status
+  run docker exec mailserver_default /bin/sh -c "unbound-control status"
   assert_success
   assert_output --partial 'is running'
 }
 
 @test "checking unbound: get stats" {
-  run docker exec -ti mailserver_default unbound-control stats_noreset
+  run docker exec mailserver_default /bin/sh -c "unbound-control stats_noreset"
   assert_success
 }
 
