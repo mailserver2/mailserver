@@ -14,7 +14,7 @@ init:
 	-docker rm -f \
 		mariadb postgres redis openldap \
 		mailserver_default mailserver_reverse mailserver_ecdsa mailserver_ldap mailserver_ldap2 \
-		mailserver_traefik_acmev1 mailserver_traefik_acmev2
+		mailserver_traefik_acmev1 mailserver_traefik_acmev2 || true
 
 	sleep 2
 
