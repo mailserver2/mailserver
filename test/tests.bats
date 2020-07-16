@@ -1777,13 +1777,13 @@ load 'test_helper/bats-assert/load'
 }
 
 @test "checking zeyple: 3 emails encrypted in john.doe folder" {
-  run docker exec mailserver_reverse /bin/sh -c "grep -i 'multipart/encrypted' /var/mail/vhosts/domain.tld/john.doe/subdir/new/* | wc -l"
+  run docker exec mailserver_reverse /bin/sh -c "gzip -cd /var/mail/vhosts/domain.tld/john.doe/subdir/new/* | grep -i 'multipart/encrypted' | wc -l"
   assert_success
   assert_output 3
-  run docker exec mailserver_reverse /bin/sh -c "grep -i 'BEGIN PGP MESSAGE' /var/mail/vhosts/domain.tld/john.doe/subdir/new/* | wc -l"
+  run docker exec mailserver_reverse /bin/sh -c "gzip -cd /var/mail/vhosts/domain.tld/john.doe/subdir/new/* | grep -i 'BEGIN PGP MESSAGE' | wc -l"
   assert_success
   assert_output 3
-  run docker exec mailserver_reverse /bin/sh -c "grep -i 'END PGP MESSAGE' /var/mail/vhosts/domain.tld/john.doe/subdir/new/* | wc -l"
+  run docker exec mailserver_reverse /bin/sh -c "gzip -cd /var/mail/vhosts/domain.tld/john.doe/subdir/new/* | grep -i 'END PGP MESSAGE' | wc -l"
   assert_success
   assert_output 3
 }
