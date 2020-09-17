@@ -51,7 +51,7 @@ init:
 		-e LDAP_ADMIN_PASSWORD="testpasswd" \
 		-e LDAP_TLS=false \
 		-v "`pwd`/test/config/ldap/struct.ldif":/container/service/slapd/assets/config/bootstrap/ldif/custom/struct.ldif \
-		-t osixia/openldap:1.3.0 --copy-service
+		-t osixia/openldap:1.4.0 --copy-service
 
 	sleep 10
 
