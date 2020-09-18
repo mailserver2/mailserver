@@ -90,6 +90,7 @@ Thank you very much.
   - [Postfix blacklist](#postfix-blacklist)
   - [Email client settings](#email-client-settings)
   - [Components](#components)
+  - [Migration from Traefik 1 to 2](#migration-from-traefik-1-to-2)
   - [Migration from 1.0 to 1.1](#migration-from-10-to-11)
   - [Migration from hardware/mailserver to mailserver2/mailserver](#migration-from-hardwaremailserver-to-mailserver2mailserver)
   - [Community projects](#community-projects)
@@ -1092,6 +1093,12 @@ NOQUEUE: reject: 554 5.7.1 <john.doe@domain.tld>: Sender address rejected: Acces
 - s6 2.8.0.1
 - Rsyslog 8.24.0
 - ManageSieve server
+
+<p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
+
+### Migration from Traefik 1 to 2
+
+Migrating from traefik 1 to 2 does not change any mailserver images that are used, only the traefik image version. You do need to update traefik lables on all containers as per [docker-compose.sample.yml](docker-compose.sample.yml). When you do this, either delete your acme.json and let traefik request the new certificate, or use the [tool](https://github.com/traefik/traefik-migration-tool) to convert from it from v1 to v2.
 
 <p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
 
