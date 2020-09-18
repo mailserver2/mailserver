@@ -188,7 +188,7 @@ services:
   # https://github.com/docker-library/redis.
   # https://redis.io/
   redis:
-    image: redis:5.0-alpine
+    image: redis:6.0-alpine
     restart: ${RESTART_MODE}
     command: redis-server --appendonly yes
     sysctls:
