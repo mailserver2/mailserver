@@ -17,7 +17,6 @@ services:
  
   traefik:
     image: "traefik:v2.2.11"
-    container_name: "traefik"
     restart: ${RESTART_MODE}
     networks:
       - http_network
@@ -40,7 +39,6 @@ services:
 
   mailserver:
     image: mailserver2/mailserver:${MAILSERVER_DOCKER_TAG}
-    container_name: mailserver
     restart: ${RESTART_MODE}
     domainname: ${MAILSERVER_DOMAIN}                    # Mail server A/MX/FQDN & reverse PTR = mail.domain.tld.
     hostname: ${MAILSERVER_HOSTNAME}
@@ -103,7 +101,6 @@ services:
     restart: ${RESTART_MODE}
     domainname: ${MAILSERVER_DOMAIN}
     hostname: ${MAILSERVER_HOSTNAME}
-    container_name: postfixadmin
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=http_network"
@@ -131,7 +128,6 @@ services:
   # Configuration : https://github.com/hardware/mailserver/wiki/Rainloop-initial-configuration
   rainloop:
     image: mailserver2/rainloop:${RAINLOOP_DOCKER_TAG}
-    container_name: rainloop
     restart: ${RESTART_MODE}
     labels:
       - "traefik.enable=true"
@@ -176,7 +172,6 @@ services:
   # https://mariadb.org/
   mariadb:
     image: mariadb:10.5
-    container_name: mariadb
     restart: ${RESTART_MODE}
     # Info : These variables are ignored when the volume already exists (if databases was created before).
     environment:
@@ -194,7 +189,6 @@ services:
   # https://redis.io/
   redis:
     image: redis:5.0-alpine
-    container_name: redis
     restart: ${RESTART_MODE}
     command: redis-server --appendonly yes
     sysctls:
