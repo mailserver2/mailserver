@@ -1098,7 +1098,7 @@ NOQUEUE: reject: 554 5.7.1 <john.doe@domain.tld>: Sender address rejected: Acces
 
 ### Migration from Traefik 1 to 2
 
-Migrating from traefik 1 to 2 does not change any mailserver images that are used, only the traefik image version. You do need to update traefik lables on all containers as per [docker-compose.sample.yml](docker-compose.sample.yml). When you do this, either delete your acme.json and let traefik request the new certificate, or use the [tool](https://github.com/traefik/traefik-migration-tool) to convert from it from v1 to v2.
+Migrating from traefik 1 to 2 does not change any mailserver images that are used, only the traefik image version. You do need to update traefik labels on all containers as per [docker-compose.sample.yml](docker-compose.sample.yml). When you do this, either delete your acme.json and let traefik request the new certificate, or use the [tool](https://github.com/traefik/traefik-migration-tool) to convert from v1 to v2.
 
 <p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
 
