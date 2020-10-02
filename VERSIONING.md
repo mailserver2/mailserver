@@ -15,8 +15,10 @@ In certain case it's also possible for the `Dockerfile` itself to change without
 
 Follow these steps when an update is ready to be pushed to Docker Hub:
 
+- Make sure you are on the master branch and that the HEAD is pointing to the lastest commit (`git checkout master`). `git log --name-status HEAD^..HEAD` should give you the same commit number that the latest commit you see at <https://github.com/mailserver2/mailserver>
 - Tag the current GitHub commit in the `mailserver2` repo with the next version, e.g. `git tag -a v1.0.1 -m "update postfixadmin to version 1.0.1, ... other changes here"`
-- Build the new image
+- Push tags with `git push --tags`
+- Build the new docker image (see below for an example)
 - Label it with the version you tagged the current commit with
 - Push this image version with the label above as well as with the `latest` label
 
