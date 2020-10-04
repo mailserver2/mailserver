@@ -1,4 +1,4 @@
-FROM mailserver2/debian-mail-overlay:1.0.1
+FROM mailserver2/debian-mail-overlay:1.0.2
 
 LABEL description="Simple and full-featured mail server using Docker"
 

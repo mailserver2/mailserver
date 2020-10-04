@@ -2,7 +2,13 @@
 
 ## Unreleased
 
+* Bump to new base image version 1.0.2 with rspamd 2.6
+
+## v1.1.3
+
 * Tests: updated osixia/openldap docker image to version [1.4.0](https://github.com/osixia/docker-openldap/releases/tag/v1.4.0).
+* Upgrade configs to traefik 2 ([#17](https://github.com/mailserver2/mailserver/pull/17))
+* Bump to new base image version 1.0.1 with new s6
 
 ## v1.1.2
 
