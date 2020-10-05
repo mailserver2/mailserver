@@ -144,8 +144,8 @@ elif [ "$1" = "update_certs" ]; then
   _normalize_certs "$NORMALIZED_CERT_PATH"
   [ $? -ne 0 ] && exit 1
 
-  # Compare Old and New key
-  if cmp --silent "$NORMALIZED_CERT_PATH"/privkey.pem "$LIVE_CERT_PATH"/privkey.pem; then
+  # Compare old and new certificates
+  if cmp --silent "$NORMALIZED_CERT_PATH"/fullchain.pem "$LIVE_CERT_PATH"/fullchain.pem; then
     echo "[INFO] Live Certificates match"
     rm -rf "$CERT_TEMP_PATH"
     exit 1
