@@ -3,6 +3,7 @@
 ## Unreleased
 
 * Bump to new base image version 1.0.2 with rspamd 2.6
+* Bump to new base image version 1.0.3 with updated Skalibs 2.9.3.0 and Execline 2.6.1.1
 
 ## v1.1.3
 
