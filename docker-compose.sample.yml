@@ -66,6 +66,7 @@ services:
     # - DISABLE_CLAMAV=true                    # Disable virus scanning
     # - DISABLE_SIGNING=true                   # Disable DKIM/ARC signing
     # - DISABLE_GREYLISTING=true               # Disable greylisting policy
+    # - DISABLE_VHOSTS_OWNERSHIP_SET=true     # Disable vhosts directory ownship set (useful, when you have lots of mailboxes)
     #
     # Full list : https://github.com/hardware/mailserver#environment-variables
     #

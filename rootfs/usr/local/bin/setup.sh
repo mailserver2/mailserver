@@ -35,6 +35,8 @@ FETCHMAIL_INTERVAL=${FETCHMAIL_INTERVAL:-10}
 RELAY_NETWORKS=${RELAY_NETWORKS:-}
 PASSWORD_SCHEME=${PASSWORD_SCHEME:-"SHA512-CRYPT"}
 
+DISABLE_VHOSTS_OWNERSHIP_SET=${DISABLE_VHOSTS_OWNERSHIP_SET:-false}
+
 # SSL CERTIFICATES
 # ---------------------------------------------------------------------------------------------
 
@@ -592,7 +594,12 @@ chown -R vmail:vmail /var/mail/sieve
 chmod +x /etc/dovecot/sieve/*.sh
 
 # Check permissions of vhosts directories
-find /var/mail/vhosts ! -user vmail -print0 | xargs -0 -r chown vmail:vmail
+if [ "$DISABLE_VHOSTS_OWNERSHIP_SET" = false ]; then
+  find /var/mail/vhosts ! -user vmail -print0 | xargs -0 -r chown vmail:vmail
+else
+  echo "[INFO] VHOSTS directories permission set is disabled"
+  echo "[WARNING] If you manually created a directory under the vhost folder, you will not receive any emails on that email address!"
+fi
 
 # Avoid file_dotlock_open function exception
 rm -f /var/mail/dovecot/instances
