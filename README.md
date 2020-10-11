@@ -104,15 +104,15 @@ Please check, if your system meets the following minimum requirements:
 
 | Type | Without ClamAV | With ClamAV |
 | ---- | -------------- | ----------- |
-| CPU | 1 GHz | 1 GHz |
-| RAM | 1.5 GiB | 2 GiB |
+| CPU  | 1 GHz          | 1 GHz       |
+| RAM  | 1.5 GiB        | 2 GiB       |
 
 #### With MariaDB/PostgreSQL and Redis hosted on another server
 
 | Type | Without ClamAV | With ClamAV |
 | ---- | -------------- | ----------- |
-| CPU | 1 GHz | 1 GHz |
-| RAM | 512 MiB | 1 GiB |
+| CPU  | 1 GHz          | 1 GHz       |
+| RAM  | 512 MiB        | 1 GiB       |
 
 <p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
 
@@ -138,18 +138,18 @@ If this command returns any results please remove or stop the application runnin
 
 If you have a firewall, unblock the following ports, according to your needs:
 
-| Service | Software | Protocol | Port |
-| ------- | -------- | -------- | ---- |
-| SMTP | Postfix | TCP | 25 |
-| HTTP | Nginx | TCP | 80 |
-| POP3 | Dovecot | TCP | 110 |
-| IMAP | Dovecot | TCP | 143 |
-| HTTPS | Nginx | TCP | 443 |
-| SMTPS | Postfix | TCP | 465 |
-| Submission | Postfix | TCP | 587 |
-| IMAPS | Dovecot | TCP | 993 |
-| POP3S | Dovecot | TCP | 995 |
-| ManageSieve | Dovecot | TCP | 4190 |
+| Service     | Software | Protocol | Port |
+| ----------- | -------- | -------- | ---- |
+| SMTP        | Postfix  | TCP      | 25   |
+| HTTP        | Nginx    | TCP      | 80   |
+| POP3        | Dovecot  | TCP      | 110  |
+| IMAP        | Dovecot  | TCP      | 143  |
+| HTTPS       | Nginx    | TCP      | 443  |
+| SMTPS       | Postfix  | TCP      | 465  |
+| Submission  | Postfix  | TCP      | 587  |
+| IMAPS       | Dovecot  | TCP      | 993  |
+| POP3S       | Dovecot  | TCP      | 995  |
+| ManageSieve | Dovecot  | TCP      | 4190 |
 
 #### DNS setup
 
@@ -159,16 +159,16 @@ I recommend you to use [hardware/nsd-dnssec](https://github.com/hardware/nsd-dns
 
 A correct DNS setup is required, this step is very important.
 
-| HOSTNAME | CLASS | TYPE | PRIORITY | VALUE |
-| -------- | ----- | ---- | -------- | ----- |
-| mail | IN | A/AAAA | any | 1.2.3.4 |
-| spam | IN | CNAME | any | mail.domain.tld. |
-| webmail | IN | CNAME | any | mail.domain.tld. |
-| postfixadmin | IN | CNAME | any | mail.domain.tld. |
-| @ | IN | MX | 10 | mail.domain.tld. |
-| @ | IN | TXT | any | "v=spf1 a mx ip4:SERVER_IPV4 ~all" |
-| {{selector}}._domainkey | IN | TXT | any | "v=DKIM1; k=rsa; p=YOUR DKIM Public Key" |
-| _dmarc | IN | TXT | any | "v=DMARC1; p=reject; rua=mailto:postmaster@domain.tld; ruf=mailto:admin@domain.tld; fo=0; adkim=s; aspf=s; pct=100; rf=afrf; sp=reject" |
+| HOSTNAME                | CLASS | TYPE   | PRIORITY | VALUE                                                                                                                                   |
+| ----------------------- | ----- | ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| mail                    | IN    | A/AAAA | any      | 1.2.3.4                                                                                                                                 |
+| spam                    | IN    | CNAME  | any      | mail.domain.tld.                                                                                                                        |
+| webmail                 | IN    | CNAME  | any      | mail.domain.tld.                                                                                                                        |
+| postfixadmin            | IN    | CNAME  | any      | mail.domain.tld.                                                                                                                        |
+| @                       | IN    | MX     | 10       | mail.domain.tld.                                                                                                                        |
+| @                       | IN    | TXT    | any      | "v=spf1 a mx ip4:SERVER_IPV4 ~all"                                                                                                      |
+| {{selector}}._domainkey | IN    | TXT    | any      | "v=DKIM1; k=rsa; p=YOUR DKIM Public Key"                                                                                                |
+| _dmarc                  | IN    | TXT    | any      | "v=DMARC1; p=reject; rua=mailto:postmaster@domain.tld; ruf=mailto:admin@domain.tld; fo=0; adkim=s; aspf=s; pct=100; rf=afrf; sp=reject" |
 
 **Notes:**
 
@@ -250,12 +250,12 @@ At first launch, the container takes few minutes to generate SSL certificates (i
 
 **List of webservices available:**
 
-| Service | URI |
-| ------- | --- |
-| **Traefik dashboard** | https://mail.domain.tld/ |
-| **Rspamd dashboard** | https://spam.domain.tld/ |
-| **Administration** | https://postfixadmin.domain.tld/ |
-| **Webmail** | https://webmail.domain.tld/ |
+| Service               | URI                              |
+| --------------------- | -------------------------------- |
+| **Traefik dashboard** | https://mail.domain.tld/         |
+| **Rspamd dashboard**  | https://spam.domain.tld/         |
+| **Administration**    | https://postfixadmin.domain.tld/ |
+| **Webmail**           | https://webmail.domain.tld/      |
 
 Traefik dashboard use a basic authentication (user:admin, password:12345), the password can be encoded in MD5, SHA1 and BCrypt. You can use [htpasswd ](https://httpd.apache.org/docs/2.4/programs/htpasswd.html) to generate those ones. Users can be specified directly in the `traefik.toml` file. Rspamd dashboard use the password defined in your `docker-compose.yml`.
 
@@ -306,42 +306,43 @@ If you use Ansible, I recommend you to go to see [@ksylvan](https://github.com/k
 
 ### Environment variables
 
-| Variable | Description | Type | Default value |
-| -------- | ----------- | ---- | ------------- |
-| **VMAILUID** | vmail user id | *optional* | 1024
-| **VMAILGID** | vmail group id | *optional* | 1024
-| **VMAIL_SUBDIR** | Individual mailbox' subdirectory | *optional* | mail
-| **DKIM_KEY_LENGTH** | Size of your DKIM RSA key pair | *optional* | 1024
-| **DKIM_SELECTOR** | Your DKIM selector | *optional* | `mail`
-| **DEBUG_MODE** | Enable Postfix, Dovecot, Rspamd and Unbound verbose logging | *optional* | false
-| **PASSWORD_SCHEME** | Passwords encryption scheme | *optional* | `SHA512-CRYPT`
-| **DBDRIVER** | Database type: mysql, pgsql, ldap | *optional* | mysql
-| **DBHOST** | Database instance ip/hostname | *optional* | mariadb
-| **DBPORT** | Database instance port | *optional* | 3306 / 389 (sql/ldap)
-| **DBUSER** | Database username | *optional* | postfix
-| **DBNAME** | Database name | *optional* | postfix
-| **DBPASS** | Database password or location of a file containing it | **required** *\*1)* | null
-| **REDIS_HOST** | Redis instance ip/hostname | *optional*  | redis
-| **REDIS_PORT** | Redis instance port | *optional*  | 6379
-| **REDIS_PASS** | Redis database password or location of a file containing it | *optional* | null
-| **REDIS_NUMB** | Redis database number | *optional* | 0
-| **RSPAMD_PASSWORD** | Rspamd WebUI and controller password or location of a file containing it | **required** | null
-| **ADD_DOMAINS** | Add additional domains to the mailserver separated by commas (needed for dkim keys etc.) | *optional* | null
-| **RELAY_NETWORKS** | Additional IPs or networks the mailserver relays without authentication | *optional* | null
-| **WHITELIST_SPAM_ADDRESSES** | List of whitelisted email addresses separated by commas | *optional* | null
-| **DISABLE_RSPAMD_MODULE** | List of disabled modules separated by commas | *optional* | null
-| **DISABLE_CLAMAV** | Disable virus scanning | *optional* | false
-| **DISABLE_SIEVE** | Disable ManageSieve protocol | *optional* | false
-| **DISABLE_SIGNING** | Disable DKIM/ARC signing | *optional* | false
-| **DISABLE_GREYLISTING** | Disable greylisting policy | *optional* | false
-| **DISABLE_RATELIMITING** | Disable rate limiting policy | *optional* | true
-| **DISABLE_DNS_RESOLVER** | Disable the local DNS resolver | *optional* | false
-| **DISABLE_SSL_WATCH** | Disable watching of `acme.json` and the Let's Encrypt directory | *optional* | false
-| **ENABLE_POP3** | Enable POP3 protocol | *optional* | false
-| **ENABLE_FETCHMAIL** | Enable fetchmail forwarding | *optional* | false
-| **ENABLE_ENCRYPTION** | Enable automatic GPG encryption | *optional* | false
-| **FETCHMAIL_INTERVAL** | Fetchmail polling interval | *optional* | 10
-| **RECIPIENT_DELIMITER** | RFC 5233 subaddress extension separator (single character only) | *optional* | +
+| Variable                         | Description                                                                              | Type                | Default value         |
+| -------------------------------- | ---------------------------------------------------------------------------------------- | ------------------- | --------------------- |
+| **VMAILUID**                     | vmail user id                                                                            | *optional*          | 1024                  |
+| **VMAILGID**                     | vmail group id                                                                           | *optional*          | 1024                  |
+| **VMAIL_SUBDIR**                 | Individual mailbox' subdirectory                                                         | *optional*          | mail                  |
+| **DKIM_KEY_LENGTH**              | Size of your DKIM RSA key pair                                                           | *optional*          | 1024                  |
+| **DKIM_SELECTOR**                | Your DKIM selector                                                                       | *optional*          | `mail`                |
+| **DEBUG_MODE**                   | Enable Postfix, Dovecot, Rspamd and Unbound verbose logging                              | *optional*          | false                 |
+| **PASSWORD_SCHEME**              | Passwords encryption scheme                                                              | *optional*          | `SHA512-CRYPT`        |
+| **DBDRIVER**                     | Database type: mysql, pgsql, ldap                                                        | *optional*          | mysql                 |
+| **DBHOST**                       | Database instance ip/hostname                                                            | *optional*          | mariadb               |
+| **DBPORT**                       | Database instance port                                                                   | *optional*          | 3306 / 389 (sql/ldap) |
+| **DBUSER**                       | Database username                                                                        | *optional*          | postfix               |
+| **DBNAME**                       | Database name                                                                            | *optional*          | postfix               |
+| **DBPASS**                       | Database password or location of a file containing it                                    | **required** *\*1)* | null                  |
+| **REDIS_HOST**                   | Redis instance ip/hostname                                                               | *optional*          | redis                 |
+| **REDIS_PORT**                   | Redis instance port                                                                      | *optional*          | 6379                  |
+| **REDIS_PASS**                   | Redis database password or location of a file containing it                              | *optional*          | null                  |
+| **REDIS_NUMB**                   | Redis database number                                                                    | *optional*          | 0                     |
+| **RSPAMD_PASSWORD**              | Rspamd WebUI and controller password or location of a file containing it                 | **required**        | null                  |
+| **ADD_DOMAINS**                  | Add additional domains to the mailserver separated by commas (needed for dkim keys etc.) | *optional*          | null                  |
+| **RELAY_NETWORKS**               | Additional IPs or networks the mailserver relays without authentication                  | *optional*          | null                  |
+| **WHITELIST_SPAM_ADDRESSES**     | List of whitelisted email addresses separated by commas                                  | *optional*          | null                  |
+| **DISABLE_RSPAMD_MODULE**        | List of disabled modules separated by commas                                             | *optional*          | null                  |
+| **DISABLE_CLAMAV**               | Disable virus scanning                                                                   | *optional*          | false                 |
+| **DISABLE_SIEVE**                | Disable ManageSieve protocol                                                             | *optional*          | false                 |
+| **DISABLE_SIGNING**              | Disable DKIM/ARC signing                                                                 | *optional*          | false                 |
+| **DISABLE_GREYLISTING**          | Disable greylisting policy                                                               | *optional*          | false                 |
+| **DISABLE_RATELIMITING**         | Disable rate limiting policy                                                             | *optional*          | true                  |
+| **DISABLE_DNS_RESOLVER**         | Disable the local DNS resolver                                                           | *optional*          | false                 |
+| **DISABLE_SSL_WATCH**            | Disable watching of `acme.json` and the Let's Encrypt directory                          | *optional*          | false                 |
+| **DISABLE_VHOSTS_OWNERSHIP_SET** | Disable set permission on `vhosts` folder                                                | *optional*          | false                 |
+| **ENABLE_POP3**                  | Enable POP3 protocol                                                                     | *optional*          | false                 |
+| **ENABLE_FETCHMAIL**             | Enable fetchmail forwarding                                                              | *optional*          | false                 |
+| **ENABLE_ENCRYPTION**            | Enable automatic GPG encryption                                                          | *optional*          | false                 |
+| **FETCHMAIL_INTERVAL**           | Fetchmail polling interval                                                               | *optional*          | 10                    |
+| **RECIPIENT_DELIMITER**          | RFC 5233 subaddress extension separator (single character only)                          | *optional*          | +                     |
 
 \*1) **DBPASS** is NOT required when using LDAP authentication
 
@@ -356,58 +357,58 @@ If you use Ansible, I recommend you to go to see [@ksylvan](https://github.com/k
 
 When using LDAP authentication the following additional variables become available. All *DBUSER*, *DBNAME* and *DBPASS* variables will not be used in this case:
 
-| Variable | Description | Type | Default value |
-| -------- | ----------- | ---- | ------------- |
-| **LDAP_TLS_ENABLED** | Enable TLS on LDAP | *optional* | false
-| **LDAP_TLS_CA_FILE** | The TLS CA File | **required** if **LDAP_TLS_ENABLED** |
-| **LDAP_TLS_FORCE** | Force TLS connections | **required** if **LDAP_TLS_ENABLED** | false
-| **LDAP_BIND** | Bind to LDAP Server | *optional* | true
-| **LDAP_BIND_DN** | The DN to bind to | **required** if **LDAP_BIND** |
-| **LDAP_BIND_PW** | LDAP password or location of a file containing it | **required** if **LDAP_BIND** |
-| **LDAP_DEFAULT_SEARCH_BASE** | The base DN for all lookups | **required** |
-| **LDAP_DEFAULT_SEARCH_SCOPE** | The default scope for all lookups (sub, base or one) | *optional* | sub
-| **LDAP_DOMAIN_SEARCH_BASE** | The search base for domain lookups | *optional* | ${LDAP_DEFAULT_SEARCH_BASE}
-| **LDAP_DOMAIN_SEARCH_SCOPE** | The search scope for domain lookups | *optional* | ${LDAP_DEFAULT_SEARCH_SCOPE}
-| **LDAP_DOMAIN_FILTER** | The search filter for domain lookups | **required** |
-| **LDAP_DOMAIN_ATTRIBUTE** | The attributes for domain lookup | **required** |
-| **LDAP_DOMAIN_FORMAT** | The format for domain lookups | *optional* |
-| **LDAP_MAILBOX_SEARCH_BASE** | The search base for mailbox lookups | *optional* | ${LDAP_DEFAULT_SEARCH_BASE}
-| **LDAP_MAILBOX_SEARCH_SCOPE** | The search scope for mailbox lookups | *optional* | ${LDAP_DEFAULT_SEARCH_SCOPE}
-| **LDAP_MAILBOX_FILTER** | The search filter for mailbox lookups | **required** |
-| **LDAP_MAILBOX_ATTRIBUTE** | The attributes for mailbox lookup | **required** |
-| **LDAP_MAILBOX_FORMAT** | The format for domain mailbox | *optional* |
-| **LDAP_ALIAS_SEARCH_BASE** | The search base for domain lookups | *optional* | ${LDAP_DEFAULT_SEARCH_BASE}
-| **LDAP_ALIAS_SEARCH_SCOPE** | The search scope for domain lookups | *optional* | ${LDAP_DEFAULT_SEARCH_SCOPE}
-| **LDAP_ALIAS_FILTER** | The search filter for domain lookups | **required** |
-| **LDAP_ALIAS_ATTRIBUTE** | The attributes for domain lookup | **required** |
-| **LDAP_ALIAS_FORMAT** | The format for domain lookups | *optional* |
-| **LDAP_FORWARD_SEARCH_BASE** | The search base for forward lookups | *optional* | ${LDAP_DEFAULT_SEARCH_BASE}
-| **LDAP_FORWARD_SEARCH_SCOPE** | The search scope for forward lookups | *optional* | ${LDAP_DEFAULT_SEARCH_SCOPE}
-| **LDAP_FORWARD_FILTER** | The search filter for forward lookups | *optional* |
-| **LDAP_FORWARD_ATTRIBUTE** | The attributes for forward lookup | *optional* |
-| **LDAP_FORWARD_FORMAT** | The format for forward lookups | *optional* |
-| **LDAP_GROUP_SEARCH_BASE** | The search base for group lookups | *optional* | ${LDAP_DEFAULT_SEARCH_BASE}
-| **LDAP_GROUP_SEARCH_SCOPE** | The search scope for group lookups | *optional* | ${LDAP_DEFAULT_SEARCH_SCOPE}
-| **LDAP_GROUP_FILTER** | The search filter for group lookups | *optional* |
-| **LDAP_GROUP_ATTRIBUTE** | The attributes for group lookup | *optional* |
-| **LDAP_GROUP_FORMAT** | The format for group lookups | *optional* |
-| **LDAP_SENDER_SEARCH_BASE** | The search base for sender lookups | *optional* | ${LDAP_DEFAULT_SEARCH_BASE}
-| **LDAP_SENDER_SEARCH_SCOPE** | The search scope for sender lookups | *optional* | ${LDAP_DEFAULT_SEARCH_SCOPE}
-| **LDAP_SENDER_FILTER** | The search filter for sender lookups | **required** |
-| **LDAP_SENDER_ATTRIBUTE** | The attributes for sender lookup | **required** |
-| **LDAP_SENDER_FORMAT** | The format for sender lookups | **required** |
-| **LDAP_DOVECOT_USER_ATTRS** | Dovecot user attribute mapping | **required** |
-| **LDAP_DOVECOT_USER_FILTER** | Dovecot user search filter | **required** |
-| **LDAP_DOVECOT_PASS_ATTRS** | Dovecot user password attribute mapping | **required** |
-| **LDAP_DOVECOT_PASS_FILTER** | Dovecot user password filter | **required** |
-| **LDAP_DOVECOT_ITERATE_ATTRS** | Dovecot user iterate attributes | *optional* |
-| **LDAP_DOVECOT_ITERATE_FILTER** | Dovecot user iterate filters | *optional* |
-| **LDAP_MASTER_USER_ENABLED** | Enable LDAP master users | *optional* | false
-| **LDAP_MASTER_USER_SEPARATOR** | LDAP master user separator | **required** if **LDAP_MASTER_USER_ENABLED** | \*
-| **LDAP_MASTER_USER_SEARCH_BASE** | LDAP master user search base | **required** if **LDAP_MASTER_USER_ENABLED** | ${LDAP_DEFAULT_SEARCH_BASE}
-| **LDAP_MASTER_USER_SEARCH_SCOPE** | LDAP master user scope | **required** if **LDAP_MASTER_USER_ENABLED** | ${LDAP_DEFAULT_SEARCH_SCOPE}
-| **LDAP_DOVECOT_MASTER_USER_ATTRS** | LDAP master user Dovecot attributes | **required** if **LDAP_MASTER_USER_ENABLED** |
-| **LDAP_DOVECOT_MASTER_USER_FILTER** | LDAP master user Dovecot search filter | **required** if **LDAP_MASTER_USER_ENABLED** |
+| Variable                            | Description                                          | Type                                         | Default value                |
+| ----------------------------------- | ---------------------------------------------------- | -------------------------------------------- | ---------------------------- |
+| **LDAP_TLS_ENABLED**                | Enable TLS on LDAP                                   | *optional*                                   | false                        |
+| **LDAP_TLS_CA_FILE**                | The TLS CA File                                      | **required** if **LDAP_TLS_ENABLED**         |
+| **LDAP_TLS_FORCE**                  | Force TLS connections                                | **required** if **LDAP_TLS_ENABLED**         | false                        |
+| **LDAP_BIND**                       | Bind to LDAP Server                                  | *optional*                                   | true                         |
+| **LDAP_BIND_DN**                    | The DN to bind to                                    | **required** if **LDAP_BIND**                |
+| **LDAP_BIND_PW**                    | LDAP password or location of a file containing it    | **required** if **LDAP_BIND**                |
+| **LDAP_DEFAULT_SEARCH_BASE**        | The base DN for all lookups                          | **required**                                 |
+| **LDAP_DEFAULT_SEARCH_SCOPE**       | The default scope for all lookups (sub, base or one) | *optional*                                   | sub                          |
+| **LDAP_DOMAIN_SEARCH_BASE**         | The search base for domain lookups                   | *optional*                                   | ${LDAP_DEFAULT_SEARCH_BASE}  |
+| **LDAP_DOMAIN_SEARCH_SCOPE**        | The search scope for domain lookups                  | *optional*                                   | ${LDAP_DEFAULT_SEARCH_SCOPE} |
+| **LDAP_DOMAIN_FILTER**              | The search filter for domain lookups                 | **required**                                 |
+| **LDAP_DOMAIN_ATTRIBUTE**           | The attributes for domain lookup                     | **required**                                 |
+| **LDAP_DOMAIN_FORMAT**              | The format for domain lookups                        | *optional*                                   |
+| **LDAP_MAILBOX_SEARCH_BASE**        | The search base for mailbox lookups                  | *optional*                                   | ${LDAP_DEFAULT_SEARCH_BASE}  |
+| **LDAP_MAILBOX_SEARCH_SCOPE**       | The search scope for mailbox lookups                 | *optional*                                   | ${LDAP_DEFAULT_SEARCH_SCOPE} |
+| **LDAP_MAILBOX_FILTER**             | The search filter for mailbox lookups                | **required**                                 |
+| **LDAP_MAILBOX_ATTRIBUTE**          | The attributes for mailbox lookup                    | **required**                                 |
+| **LDAP_MAILBOX_FORMAT**             | The format for domain mailbox                        | *optional*                                   |
+| **LDAP_ALIAS_SEARCH_BASE**          | The search base for domain lookups                   | *optional*                                   | ${LDAP_DEFAULT_SEARCH_BASE}  |
+| **LDAP_ALIAS_SEARCH_SCOPE**         | The search scope for domain lookups                  | *optional*                                   | ${LDAP_DEFAULT_SEARCH_SCOPE} |
+| **LDAP_ALIAS_FILTER**               | The search filter for domain lookups                 | **required**                                 |
+| **LDAP_ALIAS_ATTRIBUTE**            | The attributes for domain lookup                     | **required**                                 |
+| **LDAP_ALIAS_FORMAT**               | The format for domain lookups                        | *optional*                                   |
+| **LDAP_FORWARD_SEARCH_BASE**        | The search base for forward lookups                  | *optional*                                   | ${LDAP_DEFAULT_SEARCH_BASE}  |
+| **LDAP_FORWARD_SEARCH_SCOPE**       | The search scope for forward lookups                 | *optional*                                   | ${LDAP_DEFAULT_SEARCH_SCOPE} |
+| **LDAP_FORWARD_FILTER**             | The search filter for forward lookups                | *optional*                                   |
+| **LDAP_FORWARD_ATTRIBUTE**          | The attributes for forward lookup                    | *optional*                                   |
+| **LDAP_FORWARD_FORMAT**             | The format for forward lookups                       | *optional*                                   |
+| **LDAP_GROUP_SEARCH_BASE**          | The search base for group lookups                    | *optional*                                   | ${LDAP_DEFAULT_SEARCH_BASE}  |
+| **LDAP_GROUP_SEARCH_SCOPE**         | The search scope for group lookups                   | *optional*                                   | ${LDAP_DEFAULT_SEARCH_SCOPE} |
+| **LDAP_GROUP_FILTER**               | The search filter for group lookups                  | *optional*                                   |
+| **LDAP_GROUP_ATTRIBUTE**            | The attributes for group lookup                      | *optional*                                   |
+| **LDAP_GROUP_FORMAT**               | The format for group lookups                         | *optional*                                   |
+| **LDAP_SENDER_SEARCH_BASE**         | The search base for sender lookups                   | *optional*                                   | ${LDAP_DEFAULT_SEARCH_BASE}  |
+| **LDAP_SENDER_SEARCH_SCOPE**        | The search scope for sender lookups                  | *optional*                                   | ${LDAP_DEFAULT_SEARCH_SCOPE} |
+| **LDAP_SENDER_FILTER**              | The search filter for sender lookups                 | **required**                                 |
+| **LDAP_SENDER_ATTRIBUTE**           | The attributes for sender lookup                     | **required**                                 |
+| **LDAP_SENDER_FORMAT**              | The format for sender lookups                        | **required**                                 |
+| **LDAP_DOVECOT_USER_ATTRS**         | Dovecot user attribute mapping                       | **required**                                 |
+| **LDAP_DOVECOT_USER_FILTER**        | Dovecot user search filter                           | **required**                                 |
+| **LDAP_DOVECOT_PASS_ATTRS**         | Dovecot user password attribute mapping              | **required**                                 |
+| **LDAP_DOVECOT_PASS_FILTER**        | Dovecot user password filter                         | **required**                                 |
+| **LDAP_DOVECOT_ITERATE_ATTRS**      | Dovecot user iterate attributes                      | *optional*                                   |
+| **LDAP_DOVECOT_ITERATE_FILTER**     | Dovecot user iterate filters                         | *optional*                                   |
+| **LDAP_MASTER_USER_ENABLED**        | Enable LDAP master users                             | *optional*                                   | false                        |
+| **LDAP_MASTER_USER_SEPARATOR**      | LDAP master user separator                           | **required** if **LDAP_MASTER_USER_ENABLED** | \*                           |
+| **LDAP_MASTER_USER_SEARCH_BASE**    | LDAP master user search base                         | **required** if **LDAP_MASTER_USER_ENABLED** | ${LDAP_DEFAULT_SEARCH_BASE}  |
+| **LDAP_MASTER_USER_SEARCH_SCOPE**   | LDAP master user scope                               | **required** if **LDAP_MASTER_USER_ENABLED** | ${LDAP_DEFAULT_SEARCH_SCOPE} |
+| **LDAP_DOVECOT_MASTER_USER_ATTRS**  | LDAP master user Dovecot attributes                  | **required** if **LDAP_MASTER_USER_ENABLED** |
+| **LDAP_DOVECOT_MASTER_USER_FILTER** | LDAP master user Dovecot search filter               | **required** if **LDAP_MASTER_USER_ENABLED** |
 
 <p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
 
@@ -582,11 +583,11 @@ Required files in this folder:
 
 :bulb: If you only have the fullchain.pem and privkey.pem, the startup script extract automatically the cert.pem and chain.pem from fullchain.pem.
 
-| Filename | Description |
-|----------|-------------|
-| privkey.pem | Private key for the certificate |
-| cert.pem | Server certificate only |
-| chain.pem | Root and intermediate certificates only, excluding server certificate |
+| Filename      | Description                                                                                     |
+| ------------- | ----------------------------------------------------------------------------------------------- |
+| privkey.pem   | Private key for the certificate                                                                 |
+| cert.pem      | Server certificate only                                                                         |
+| chain.pem     | Root and intermediate certificates only, excluding server certificate                           |
 | fullchain.pem | All certificates, including server certificate. This is concatenation of cert.pem and chain.pem |
 
 Example with [acme.sh](https://acme.sh):
@@ -667,8 +668,8 @@ Readme: https://github.com/extremeshok/clamav-unofficial-sigs
 
 | Software | Protocol | Port |
 | -------- | -------- | ---- |
-| Rsync | TCP | 873 |
-| Curl | TCP | 443 |
+| Rsync    | TCP      | 873  |
+| Curl     | TCP      | 443  |
 
 #### Enable clamav-unofficial-sigs
 
