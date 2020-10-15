@@ -758,7 +758,9 @@ fi
 # ---------------------------------------------------------------------------------------------
 
 # Remove invoke-rc.d warning
-sed -i 's|rsyslog-rotate|rsyslog-rotate \&>/dev/null|g' /etc/logrotate.d/rsyslog
+sed -i 's|invoke-rc.d rsyslog rotate|s6-svc -h /services/rsyslogd|g' /usr/lib/rsyslog/rsyslog-rotate
+sed -i 's|invoke-rc.d clamav-daemon reload-log|s6-svc -h /services/clamd|g' /etc/logrotate.d/clamav-daemon
+sed -i 's|invoke-rc.d clamav-freshclam reload-log|s6-svc -h /services/freshclam|g' /etc/logrotate.d/clamav-freshclam
 
 # Folders and permissions
 mkdir -p /var/run/fetchmail
