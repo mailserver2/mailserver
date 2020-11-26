@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v1.1.5
+
+* Fixed some more log rotation warnings
+
 ## v1.1.4
 
 * Bump to new base image version 1.0.2 with rspamd 2.6

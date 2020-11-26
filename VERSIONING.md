@@ -15,6 +15,7 @@ In certain case it's also possible for the `Dockerfile` itself to change without
 
 Follow these steps when an update is ready to be pushed to Docker Hub:
 
+- Update [CHANGELOG.md](CHANGELOG.md), if exists in the repository
 - Make sure you are on the master branch and that the HEAD is pointing to the lastest commit (`git checkout master`). `git log --name-status HEAD^..HEAD` should give you the same commit number that the latest commit you see at <https://github.com/mailserver2/mailserver>
 - Tag the current GitHub commit in the `mailserver2` repo with the next version, e.g. `git tag -a v1.0.1 -m "update postfixadmin to version 1.0.1, ... other changes here"`
 - Push tags with `git push --tags`
@@ -32,4 +33,3 @@ docker push mailserver2/debian-mail-overlay:0.0.0
 docker tag debian-mail-overlay mailserver2/debian-mail-overlay:latest
 docker push mailserver2/debian-mail-overlay:latest
 ```
-
