@@ -313,7 +313,7 @@ fi
 # If you defined whitelist for clients, you need to define
 # "rbl_override" file under "/etc/postfix" directory, then
 # you need to add the following settings:
-#     check_client_access hash:/etc/postfix/rbl_overrid
+#     check_client_access hash:/etc/postfix/rbl_override
 #
 # into the "smtpd_recipient_restrictions" definition before the 
 # "reject_rbl_client" line(s).
