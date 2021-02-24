@@ -14,7 +14,7 @@ init:
 	-docker rm -f \
 		mariadb postgres redis openldap \
 		mailserver_default mailserver_reverse mailserver_ecdsa mailserver_ldap mailserver_ldap2 \
-		mailserver_traefik_acmev1 mailserver_traefik_acmev2
+		mailserver_traefik_acmev1 mailserver_traefik_acmev2 || true
 
 	sleep 2
 
@@ -36,12 +36,12 @@ init:
 		-e POSTGRES_USER=postfix \
 		-e POSTGRES_PASSWORD=testpasswd \
 		-v "`pwd`/test/config/postgres":/docker-entrypoint-initdb.d \
-		-t postgres:10.5-alpine
+		-t postgres:12-alpine
 
 	docker run \
 		-d \
 		--name redis \
-		-t redis:4.0-alpine
+		-t redis:5.0-alpine
 
 	docker run \
 		-d \
@@ -51,7 +51,7 @@ init:
 		-e LDAP_ADMIN_PASSWORD="testpasswd" \
 		-e LDAP_TLS=false \
 		-v "`pwd`/test/config/ldap/struct.ldif":/container/service/slapd/assets/config/bootstrap/ldif/custom/struct.ldif \
-		-t osixia/openldap:1.2.2 --copy-service
+		-t osixia/openldap:1.4.0 --copy-service
 
 	sleep 10
 
@@ -104,7 +104,8 @@ init:
 		-e ENABLE_POP3=true \
 		-e ENABLE_ENCRYPTION=true \
 		-e ENABLE_FETCHMAIL=true \
-		-e OPENDKIM_KEY_LENGTH=4096 \
+		-e DKIM_KEY_LENGTH=4096 \
+		-e DKIM_SELECTOR="other" \
 		-e TESTING=true \
 		-v "`pwd`/test/share/tests":/tmp/tests \
 		-v "`pwd`/test/share/passwd":/tmp/passwd \
@@ -144,6 +145,7 @@ init:
 		-e LDAP_DOVECOT_PASS_FILTER="(&(mail=%u)(objectClass=mailAccount))" \
 		-e LDAP_DOVECOT_ITERATE_ATTRS="mail=user" \
 		-e LDAP_DOVECOT_ITERATE_FILTER="(objectClass=mailAccount)" \
+		-e DKIM_SELECTOR="mail20190101" \
 		-e VMAILUID=`id -u` \
 		-e VMAILGID=`id -g` \
 		-e RSPAMD_PASSWORD=testpasswd \

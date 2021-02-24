@@ -1,7 +1,6 @@
-FROM hardware/debian-mail-overlay:latest
+FROM mailserver2/debian-mail-overlay:1.0.4
 
-LABEL description "Simple and full-featured mail server using Docker" \
-      maintainer="Hardware <contact@meshup.net>"
+LABEL description="Simple and full-featured mail server using Docker"
 
 ARG DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
@@ -11,9 +10,11 @@ RUN apt-get update && apt-get install -y -q --no-install-recommends \
     dovecot-core dovecot-imapd dovecot-lmtpd dovecot-pgsql dovecot-mysql dovecot-ldap dovecot-sieve dovecot-managesieved dovecot-pop3d \
     fetchmail libdbi-perl libdbd-pg-perl libdbd-mysql-perl liblockfile-simple-perl \
     clamav clamav-daemon \
-    python3-pip python3-setuptools python3-wheel \
+    python3-pip python3-setuptools python3-wheel python3-gpg \
     rsyslog dnsutils curl unbound jq rsync \
     inotify-tools \
+    # To enable compression in imap
+    arj bzip2 cabextract cpio file gzip nomarch pax unzip zip \
  && rm -rf /var/spool/postfix \
  && ln -s /var/mail/postfix/spool /var/spool/postfix \
  && apt-get autoremove -y \

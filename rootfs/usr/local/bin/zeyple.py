@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import sys
@@ -17,7 +17,12 @@ try:
 except ImportError:
     from ConfigParser import SafeConfigParser  # Python 2
 
-import gpgme
+legacy_gpg = False
+try:
+    import gpg
+except ImportError:
+    import gpgme
+    legacy_gpg = True
 
 # Boiler plate to avoid dependency on six
 # BBB: Python 2.7 support
@@ -70,7 +75,7 @@ class Zeyple:
 
         config = SafeConfigParser()
         config.read([
-            os.path.join('/etc/zeyple/', filename),
+            os.path.join('/etc/', filename),
             filename,
         ])
         if not config.sections():
@@ -79,7 +84,11 @@ class Zeyple:
 
     @property
     def gpg(self):
-        protocol = gpgme.PROTOCOL_OpenPGP
+        global legacy_gpg
+        if legacy_gpg:
+            protocol = gpgme.PROTOCOL_OpenPGP
+        else:
+            protocol = gpg.constants.PROTOCOL_OpenPGP
 
         if self.config.has_option('gpg', 'executable'):
             executable = self.config.get('gpg', 'executable')
@@ -88,7 +97,10 @@ class Zeyple:
 
         home_dir = self.config.get('gpg', 'home')
 
-        ctx = gpgme.Context()
+        if legacy_gpg:
+            ctx = gpgme.Context()
+        else:
+            ctx = gpg.Context()
         ctx.set_engine_info(protocol, executable, home_dir)
         ctx.armor = True
 
@@ -114,6 +126,11 @@ class Zeyple:
 
             if key_id:
                 out_message = self._encrypt_message(in_message, key_id)
+
+            elif self.config.has_option('zeyple', 'force_encrypt') and \
+                    self.config.getboolean('zeyple', 'force_encrypt'):
+                logging.error("No keys found, message will not be sent!")
+                continue
 
             else:
                 logging.warn("No keys found, message will be sent unencrypted")
@@ -225,19 +242,41 @@ class Zeyple:
 
     def _encrypt_payload(self, payload, key_ids):
         """Encrypts the payload with the given keys"""
+        global legacy_gpg
         payload = encode_string(payload)
-
-        plaintext = BytesIO(payload)
-        ciphertext = BytesIO()
 
         self.gpg.armor = True
 
         recipient = [self.gpg.get_key(key_id) for key_id in key_ids]
 
-        self.gpg.encrypt(recipient, gpgme.ENCRYPT_ALWAYS_TRUST,
-                         plaintext, ciphertext)
+        for key in recipient:
+            if key.expired:
+                if legacy_gpg:
+                    raise gpgme.GpgmeError(
+                        "Key with user email %s "
+                        "is expired!".format(key.uids[0].email))
+                else:
+                    raise gpg.errors.GPGMEError(
+                        "Key with user email %s "
+                        "is expired!".format(key.uids[0].email))
 
-        return ciphertext.getvalue()
+        if legacy_gpg:
+            plaintext = BytesIO(payload)
+            ciphertext = BytesIO()
+
+            self.gpg.encrypt(recipient, gpgme.ENCRYPT_ALWAYS_TRUST,
+                          plaintext, ciphertext)
+
+            return ciphertext.getvalue()
+        else:
+            (ciphertext, encresult, signresult) = self.gpg.encrypt(
+                gpg.Data(string=payload),
+                recipients=recipient,
+                sign=False,
+                always_trust=True
+            )
+
+            return ciphertext
 
     def _user_key(self, email):
         """Returns the GPG key for the given email address"""
@@ -266,7 +305,7 @@ class Zeyple:
         logging.info("Sending message %s", message['Message-id'])
 
         smtp = smtplib.SMTP(self.config.get('relay', 'host'),
-                            self.config.get('relay', 'port'))
+                            self.config.getint('relay', 'port'))
 
         smtp.sendmail(message['From'], recipient, message.as_string())
         smtp.quit()

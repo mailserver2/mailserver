@@ -6,16 +6,19 @@ export RECIPIENT_DELIMITER
 export FETCHMAIL_INTERVAL
 export RELAY_NETWORKS
 export PASSWORD_SCHEME
+export DKIM_SELECTOR
 
 TESTING=${TESTING:-false}
 DEBUG_MODE=${DEBUG_MODE:-false}
 
 ADD_DOMAINS=${ADD_DOMAINS:-}
 
-DBPASS=$([ -f "$DBPASS" ] && cat "$DBPASS" || echo "${DBPASS:-}")
+export DBPASS=$([ -f "$DBPASS" ] && cat "$DBPASS" || echo "${DBPASS:-}")
 RSPAMD_PASSWORD=$([ -f "$RSPAMD_PASSWORD" ] && cat "$RSPAMD_PASSWORD" || echo "${RSPAMD_PASSWORD:-}")
 WHITELIST_SPAM_ADDRESSES=${WHITELIST_SPAM_ADDRESSES:-}
 OPENDKIM_KEY_LENGTH=${OPENDKIM_KEY_LENGTH:-1024}
+DKIM_KEY_LENGTH=${DKIM_KEY_LENGTH:-$OPENDKIM_KEY_LENGTH}
+DKIM_SELECTOR=${DKIM_SELECTOR:-mail}
 
 DISABLE_RSPAMD_MODULE=${DISABLE_RSPAMD_MODULE:-}
 DISABLE_SIEVE=${DISABLE_SIEVE:-false}
@@ -31,6 +34,8 @@ RECIPIENT_DELIMITER=${RECIPIENT_DELIMITER:-"+"}
 FETCHMAIL_INTERVAL=${FETCHMAIL_INTERVAL:-10}
 RELAY_NETWORKS=${RELAY_NETWORKS:-}
 PASSWORD_SCHEME=${PASSWORD_SCHEME:-"SHA512-CRYPT"}
+
+DISABLE_VHOSTS_OWNERSHIP_SET=${DISABLE_VHOSTS_OWNERSHIP_SET:-false}
 
 # SSL CERTIFICATES
 # ---------------------------------------------------------------------------------------------
@@ -58,19 +63,24 @@ for domain in "${domains[@]}"; do
   mkdir -p /var/mail/dkim/"$domain"
 
   if [ -f /var/mail/opendkim/"$domain"/mail.private ]; then
-    echo "[INFO] Found an old DKIM keys, migrating files to the new location"
-    mv /var/mail/opendkim/"$domain"/mail.private /var/mail/dkim/"$domain"/private.key
-    mv /var/mail/opendkim/"$domain"/mail.txt /var/mail/dkim/"$domain"/public.key
+    echo "[INFO] Found an old OPENDKIM keys, migrating files to the new location"
+    mv /var/mail/opendkim/"$domain"/mail.private /var/mail/dkim/"$domain"/mail.private.key
+    mv /var/mail/opendkim/"$domain"/mail.txt /var/mail/dkim/"$domain"/mail.public.key
     rm -rf /var/mail/opendkim/"$domain"
     rmdir --ignore-fail-on-non-empty /var/mail/opendkim
-  elif [ ! -f /var/mail/dkim/"$domain"/private.key ]; then
+  elif [ -f /var/mail/dkim/"$domain"/private.key ]; then
+    echo "[INFO] Found an old DKIM keys, migrating files to the new location"
+    mv /var/mail/dkim/"$domain"/private.key /var/mail/dkim/"$domain"/mail.private.key
+    mv /var/mail/dkim/"$domain"/public.key /var/mail/dkim/"$domain"/mail.public.key
+  fi
+  if [ ! -f /var/mail/dkim/"$domain"/"$DKIM_SELECTOR".private.key ]; then
     echo "[INFO] Creating DKIM keys for domain $domain"
     rspamadm dkim_keygen \
-      --selector=mail \
+      --selector="$DKIM_SELECTOR" \
       --domain="$domain" \
-      --bits="$OPENDKIM_KEY_LENGTH" \
-      --privkey=/var/mail/dkim/"$domain"/private.key \
-      > /var/mail/dkim/"$domain"/public.key
+      --bits="$DKIM_KEY_LENGTH" \
+      --privkey=/var/mail/dkim/"$domain"/"$DKIM_SELECTOR".private.key \
+      > /var/mail/dkim/"$domain"/"$DKIM_SELECTOR".public.key
   else
     echo "[INFO] Found DKIM key pair for domain $domain - skip creation"
   fi
@@ -190,8 +200,8 @@ if [ "$DBDRIVER" = "ldap" ]; then
   LDAP_MASTER_USER_SEPARATOR=${LDAP_MASTER_USER_SEPARATOR:-"*"}
   LDAP_MASTER_USER_SEARCH_BASE=${LDAP_MASTER_USER_SEARCH_BASE:-"${LDAP_DEFAULT_SEARCH_BASE}"}
   LDAP_MASTER_USER_SEARCH_SCOPE=${LDAP_MASTER_USER_SEARCH_SCOPE:-"${LDAP_DEFAULT_SEARCH_SCOPE}"}
-  LDAP_DOVECOT_MASTER_USER_ATTRS=${LDAP_DOVECOT_USER_ATTRS:-}
-  LDAP_DOVECOT_MASTER_USER_FILTER=${LDAP_DOVECOT_USER_FILTER:-}
+  LDAP_DOVECOT_MASTER_PASS_ATTRS=${LDAP_DOVECOT_MASTER_PASS_ATTRS:-}
+  LDAP_DOVECOT_MASTER_PASS_FILTER=${LDAP_DOVECOT_MASTER_PASS_FILTER:-}
 fi
 
 # ENVIRONMENT VARIABLES TEMPLATING
@@ -236,6 +246,8 @@ _envtpl /etc/dovecot/conf.d/90-quota.conf
 _envtpl /etc/rspamd/local.d/redis.conf
 _envtpl /etc/rspamd/local.d/settings.conf
 _envtpl /etc/rspamd/local.d/statistic.conf
+_envtpl /etc/rspamd/local.d/dkim_signing.conf
+_envtpl /etc/rspamd/local.d/arc.conf
 
 _envtpl /etc/cron.d/fetchmail
 _envtpl /etc/mailname
@@ -392,12 +404,7 @@ if [ "$ENABLE_ENCRYPTION" = false ]; then
   echo "[INFO] Automatic GPG encryption is disabled"
   sed -i '/content_filter/ s/^/#/' /etc/postfix/main.cf
 else
-  # echo "[INFO] Automatic GPG encryption is enabled"
-  sed -i '/content_filter/ s/^/#/' /etc/postfix/main.cf
-  echo "[ERROR] Zeyple support has been temporarily disabled in the master branch following the Debian 10 update. Please, use the stable docker tag (1.1-stable) until the issue fixed. More information here : https://github.com/hardware/mailserver/issues/393"
-  if [ "$TESTING" = false ]; then
-    touch /etc/setup-error
-  fi
+  echo "[INFO] Automatic GPG encryption is enabled"
 fi
 
 # Enable ManageSieve protocol
@@ -461,7 +468,7 @@ if [ "$TESTING" = true ]; then
   sed -i 's|\(sign_local.*=\).*|\1 false;|' /etc/rspamd/local.d/dkim_signing.conf
   sed -i 's|\(sign_local.*=\).*|\1 false;|' /etc/rspamd/local.d/arc.conf
   # Zeyple logs are needed for testing (default: logs are redirected to /dev/null)
-  sed -i 's|\(log_file.*=\).*|\1 /var/log/zeyple.log|' /etc/zeyple/zeyple.conf
+  sed -i 's|\(log_file.*=\).*|\1 /var/log/zeyple.log|' /etc/zeyple.conf
   # Disable fetchmail scheduled Task
   rm -f /etc/cron.d/fetchmail
   # Ignore temporary dns failure in rspamd
@@ -523,47 +530,47 @@ postfix set-permissions &>/dev/null
 # ZEYPLE
 # ---------------------------------------------------------------------------------------------
 
-# if [ "$ENABLE_ENCRYPTION" = true ]; then
+if [ "$ENABLE_ENCRYPTION" = true ]; then
 
-#   # Add Zeyple user
-#   adduser --quiet \
-#           --system \
-#           --group \
-#           --home /var/mail/zeyple \
-#           --no-create-home \
-#           --disabled-login \
-#           --gecos "zeyple automatic GPG encryption tool" \
-#           zeyple
+  # Add Zeyple user
+  adduser --quiet \
+          --system \
+          --group \
+          --home /var/mail/zeyple \
+          --no-create-home \
+          --disabled-login \
+          --gecos "zeyple automatic GPG encryption tool" \
+          zeyple
 
-#   # Create all files and directories needed by Zeyple
-#   mkdir -p /var/mail/zeyple/keys
-#   chmod 700 /var/mail/zeyple/keys
-#   chmod 744 /usr/local/bin/zeyple.py
-#   chown -R zeyple:zeyple /var/mail/zeyple /usr/local/bin/zeyple.py
+  # Create all files and directories needed by Zeyple
+  mkdir -p /var/mail/zeyple/keys
+  chmod 700 /var/mail/zeyple/keys
+  chmod 744 /usr/local/bin/zeyple.py
+  chown -R zeyple:zeyple /var/mail/zeyple /usr/local/bin/zeyple.py
 
-#   if [ "$TESTING" = true ]; then
+  if [ "$TESTING" = true ]; then
 
-#     touch /var/log/zeyple.log
-#     chown zeyple:zeyple /var/log/zeyple.log
+    touch /var/log/zeyple.log
+    chown zeyple:zeyple /var/log/zeyple.log
 
-# # Generating John Doe GPG key
-# s6-setuidgid zeyple gpg --homedir "/var/mail/zeyple/keys" --batch --generate-key <<EOF
-#   %echo Generating John Doe GPG key
-#   Key-Type: default
-#   Key-Length: 1024
-#   Subkey-Type: default
-#   Subkey-Length: 1024
-#   Name-Real: John Doe
-#   Name-Comment: test key
-#   Name-Email: john.doe@domain.tld
-#   Expire-Date: 0
-#   Passphrase: azerty
-#   %commit
-#   %echo done
-# EOF
+# Generating John Doe GPG key
+s6-setuidgid zeyple gpg --homedir "/var/mail/zeyple/keys" --batch --generate-key <<EOF
+  %echo Generating John Doe GPG key
+  Key-Type: default
+  Key-Length: 1024
+  Subkey-Type: default
+  Subkey-Length: 1024
+  Name-Real: John Doe
+  Name-Comment: test key
+  Name-Email: john.doe@domain.tld
+  Expire-Date: 0
+  Passphrase: azerty
+  %commit
+  %echo done
+EOF
 
-#   fi
-# fi
+  fi
+fi
 
 # DOVECOT
 # ---------------------------------------------------------------------------------------------
@@ -601,7 +608,12 @@ chown -R vmail:vmail /var/mail/sieve
 chmod +x /etc/dovecot/sieve/*.sh
 
 # Check permissions of vhosts directories
-find /var/mail/vhosts ! -user vmail -print0 | xargs -0 -r chown vmail:vmail
+if [ "$DISABLE_VHOSTS_OWNERSHIP_SET" = false ]; then
+  find /var/mail/vhosts ! -user vmail -print0 | xargs -0 -r chown vmail:vmail
+else
+  echo "[INFO] VHOSTS directories permission set is disabled"
+  echo "[WARNING] If you manually created a directory under the vhost folder, you will not receive any emails on that email address!"
+fi
 
 # Avoid file_dotlock_open function exception
 rm -f /var/mail/dovecot/instances
@@ -663,8 +675,12 @@ sed -i "s|<PASSWORD>|${PASSWORD}|g" /etc/rspamd/local.d/worker-controller.inc
 
 # Set permissions
 mkdir -p /var/mail/rspamd /var/log/rspamd /run/rspamd
-chown -R _rspamd:_rspamd /var/mail/rspamd /var/log/rspamd /run/rspamd
+chown -R _rspamd:_rspamd /var/mail/rspamd /var/log/rspamd /run/rspamd /var/mail/dkim
 chmod 750 /var/mail/rspamd /var/log/rspamd
+
+# Fix old DKIM keys permissions
+chmod 444 /var/mail/dkim/*/*.public.key
+chmod 440 /var/mail/dkim/*/*.private.key
 
 modules+=(${DISABLE_RSPAMD_MODULE//,/ })
 
@@ -763,15 +779,13 @@ fi
 # ---------------------------------------------------------------------------------------------
 
 # Remove invoke-rc.d warning
-sed -i 's|rsyslog-rotate|rsyslog-rotate \&>/dev/null|g' /etc/logrotate.d/rsyslog
+sed -i 's|invoke-rc.d rsyslog rotate|s6-svc -h /services/rsyslogd|g' /usr/lib/rsyslog/rsyslog-rotate
+sed -i 's|invoke-rc.d clamav-daemon reload-log|s6-svc -h /services/clamd|g' /etc/logrotate.d/clamav-daemon
+sed -i 's|invoke-rc.d clamav-freshclam reload-log|s6-svc -h /services/freshclam|g' /etc/logrotate.d/clamav-freshclam
 
 # Folders and permissions
 mkdir -p /var/run/fetchmail
 chmod +x /usr/local/bin/*
-
-# Fix old DKIM keys permissions
-chown -R vmail:vmail /var/mail/dkim
-chmod 444 /var/mail/dkim/*/{private.key,public.key}
 
 # Ensure that hashes are calculated because Postfix require directory
 # to be set up like this in order to find CA certificates.

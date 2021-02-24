@@ -23,7 +23,7 @@ _Please delete options that are not relevant._
 #### Docker information
 ```
 docker info
-docker images hardware/mailserver --digests --filter "dangling=false"
+docker images mailserver2/mailserver --digests --filter "dangling=false"
 ```
 
 #### Description
