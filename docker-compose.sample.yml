@@ -70,6 +70,9 @@ services:
     #
     volumes:
       - ${VOLUMES_ROOT_PATH}/mail:/var/mail
+      - ${VOLUMES_ROOT_PATH}/traefik/acme:/etc/letsencrypt/acme
+      # Comment out the line below, when you want whitelist some IP Addresses or domains in Postfix (please check the documentation)
+      # - ${VOLUMES_ROOT_PATH}/<to_your_directory_where_the>/rbl_override:/etc/postfix/rbl_override
     depends_on:
       - mariadb
       - redis

@@ -197,6 +197,7 @@ smtpd_recipient_restrictions=
     reject_unknown_recipient_domain,
     reject_non_fqdn_recipient,
     reject_unlisted_recipient,
+    check_client_access hash:/etc/postfix/rbl_override,
     reject_rbl_client zen.spamhaus.org
 
 ##
