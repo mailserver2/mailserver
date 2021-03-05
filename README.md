@@ -915,6 +915,7 @@ You can read more on how and why [robbertkl/docker-ipv6nat](https://github.com/r
 └──mail
    ├──postfix
    |     custom.conf
+   |     rbl_override
    |     sender_access
    |  ├──spool (Postfix queues directory)
    │  │     defer
@@ -1019,6 +1020,37 @@ docker logs -f mailserver
 [INFO] Override service field in master.cf : smtp/unix/chroot=n
 [INFO] Custom Postfix configuration file loaded
 ```
+
+<p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
+
+### Whitelist Hosts/IP Addresses In Postfix
+
+If a blacklisted server tries to send mail to your server, you should find something like this in your mail log:
+
+```
+SMTP error from remote mail server after RCPT TO:<bla@example.com>: host mail.example.com [4.3.2.1]: 554 5.7.1 Service unavailable; Client host [1.2.3.4] blocked using dnsbl.sorbs.net; Currently Sending Spam See: http://www.sorbs.net/lookup.shtml?1.2.3.4
+```
+In this example, the mail server 1.2.3.4 is blacklisted and therefore blocked.
+
+To whitelist that server, create the file next to your `docker-compose.yml` file as `rbl_override` then add a list all IP addresses or host names (one per line!) that you want to whitelist as an example:
+```
+1.2.3.4 OK
+iam-good.com OK
+iam-bad.com REJECT
+```
+Then open your `docker-compose.yml` file and find your `mailserver` service section and go to the `volumes` part.  Uncomment the `rbl_override` line:
+```
+...
+    volumes:
+      - ${VOLUMES_ROOT_PATH}/mail:/var/mail
+      - ${VOLUMES_ROOT_PATH}/traefik/acme:/etc/letsencrypt/acme
+      # Comment out the line below, when you want whitelist some IP Addresses or domains in Postfix (please check the documentation)
+      # - ${VOLUMES_ROOT_PATH}/<to_your_directory_where_the>/rbl_override:/etc/postfix/rbl_override
+...
+```
+Don't forget to update the `<to_your_directory_where_the>` section based on your environment setup.  Then restart your `mailserver`.
+
+
 
 <p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
 

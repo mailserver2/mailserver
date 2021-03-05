@@ -310,14 +310,20 @@ if [ -f /var/mail/postfix/custom.conf ]; then
 fi
 
 #
-# If you defined whitelist for clients, you need to define
-# "rbl_override" file under "/etc/postfix" directory, then
-# you need to add the following settings:
-#     check_client_access hash:/etc/postfix/rbl_override
+# Initialize rbl_override configuration
 #
-# into the "smtpd_recipient_restrictions" definition before the 
-# "reject_rbl_client" line(s).
-#
+if [ -d "/etc/postifx/rbl_override" ]; then
+  echo "[ERROR] The `/etc/postfix/rbl_override` is a folder instead of a file.  Please fix it."
+  exit 1;
+fi
+
+if [ ! -f "/etc/postfix/rbl_override" ]; then
+  touch /etc/postfix/rbl_override
+  echo "[INFO] Created default (empty) rbl_override file"
+else
+  echo "[INFO] /etc/postfix/rbl_override file found"
+fi
+
 if [ -f "/etc/postfix/rbl_override" ]; then
   postmap /etc/postfix/rbl_override
   echo "[INFO] RBL Override initialized"
