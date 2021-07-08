@@ -1621,7 +1621,7 @@ load 'test_helper/bats-assert/load'
 }
 
 @test "checking clamav: Eicar-Test-Signature FOUND" {
-  run docker exec mailserver_default grep -i '(44d88612fea8a8f36de82e1278abb02f:68) FOUND' /var/log/mail.log
+  run docker exec mailserver_default grep -i 'EICAR\.TEST\.3\.UNOFFICIAL.*FOUND' /var/log/mail.log
   assert_success
 }
 
@@ -1925,12 +1925,12 @@ load 'test_helper/bats-assert/load'
 }
 
 @test "checking ssl: traefik cert works correctly (acme v1)" {
-  run docker exec mailserver_traefik_acmev1 /bin/sh -c "timeout 1 openssl s_client -ign_eof -connect 0.0.0.0:587 -starttls smtp | grep 'Verify return code: 21 (unable to verify the first certificate)'"
+  run docker exec mailserver_traefik_acmev1 /bin/sh -c "timeout 1 openssl s_client -ign_eof -connect 0.0.0.0:587 -starttls smtp | grep 'Verify return code: 10 (certificate has expired)'"
   assert_success
 }
 
 @test "checking ssl: traefik cert works correctly (acme v2)" {
-  run docker exec mailserver_traefik_acmev2 /bin/sh -c "timeout 1 openssl s_client -ign_eof -connect 0.0.0.0:587 -starttls smtp | grep 'Verify return code: 21 (unable to verify the first certificate)'"
+  run docker exec mailserver_traefik_acmev2 /bin/sh -c "timeout 1 openssl s_client -ign_eof -connect 0.0.0.0:587 -starttls smtp | grep 'Verify return code: 10 (certificate has expired)'"
   assert_success
 }
 
