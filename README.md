@@ -13,7 +13,7 @@ Thank you very much.
 
 ### Build
 
-[![Build Status](https://travis-ci.org/mailserver2/mailserver.svg?branch=master)](https://travis-ci.org/mailserver2/mailserver)
+[![Build Status](https://travis-ci.com/mailserver2/mailserver.svg?branch=master)](https://travis-ci.com/mailserver2/mailserver)
 
 ### Docker image
 
