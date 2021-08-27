@@ -1,0 +1,22 @@
+name:  traefik_acmev1 tests
+
+on:
+  pull_request:
+    branches: master
+
+jobs:
+  # Run tests
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Build docker image
+        run: make build-no-cache
+
+      - name: Run tests
+        run: make traefik_acmev1
