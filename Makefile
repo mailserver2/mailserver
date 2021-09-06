@@ -1,6 +1,6 @@
 NAME = mailserver2/mailserver:testing
 
-all: build-no-cache init fixtures run clean
+all: build-no-cache init fixtures run stop_old init_more fixtures_more run_more clean 
 all-fast: build init fixtures run clean
 no-build: init fixtures run clean
 
@@ -68,29 +68,6 @@ init:
 		-e ADD_DOMAINS=domain2.tld,domain3.tld \
 		-e RECIPIENT_DELIMITER=: \
 		-e TESTING=true \
-		-v "`pwd`/test/share/tests":/tmp/tests \
-		-v "`pwd`/test/share/ssl/rsa":/var/mail/ssl \
-		-v "`pwd`/test/share/postfix/custom.conf":/var/mail/postfix/custom.conf \
-		-v "`pwd`/test/share/postfix/sender_access":/var/mail/postfix/sender_access \
-		-v "`pwd`/test/share/dovecot/conf.d":/var/mail/dovecot/conf.d \
-		-v "`pwd`/test/share/clamav/unofficial-sigs/user.conf":/var/mail/clamav-unofficial-sigs/user.conf \
-		-h mail.domain.tld \
-		-t $(NAME)
-
-	docker run \
-		-d \
-		--name mailserver_sieve \
-		--link mariadb:mariadb \
-		--link redis:redis \
-		-e DBHOST=mariadb \
-		-e DBPASS=testpasswd \
-		-e RSPAMD_PASSWORD=testpasswd \
-		-e VMAILUID=`id -u` \
-		-e VMAILGID=`id -g` \
-		-e ADD_DOMAINS=domain2.tld,domain3.tld \
-		-e RECIPIENT_DELIMITER=: \
-		-e TESTING=true \
-		-e DEBUG_MODE=true \
 		-v "`pwd`/test/share/tests":/tmp/tests \
 		-v "`pwd`/test/share/ssl/rsa":/var/mail/ssl \
 		-v "`pwd`/test/share/postfix/custom.conf":/var/mail/postfix/custom.conf \
@@ -286,17 +263,13 @@ init:
 		-h mail.domain.tld \
 		-t $(NAME)
 
+
 fixtures:
 
 	# Wait for clamav unofficial sigs database update (default)
 	docker exec mailserver_default /bin/sh -c "while [ -f /var/lib/clamav-unofficial-sigs/pid/clamav-unofficial-sigs.pid ] ; do sleep 1 ; done"
 	# Wait for clamav load databases (default)
 	docker exec mailserver_default /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 3310 ; do sleep 1 ; done"
-
-	# Wait for clamav unofficial sigs database update (sieve)
-	docker exec mailserver_sieve /bin/sh -c "while [ -f /var/lib/clamav-unofficial-sigs/pid/clamav-unofficial-sigs.pid ] ; do sleep 1 ; done"
-	# Wait for clamav load databases (sieve)
-	docker exec mailserver_sieve /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 3310 ; do sleep 1 ; done"
 
 	# Wait for clamav unofficial sigs database update (ldap)
 	docker exec mailserver_ldap /bin/sh -c "while [ -f /var/lib/clamav-unofficial-sigs/pid/clamav-unofficial-sigs.pid ] ; do sleep 1 ; done"
@@ -312,16 +285,6 @@ fixtures:
 	docker exec mailserver_default /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-virus-to-existing-user.txt"
 	docker exec mailserver_default /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:587 -starttls smtp < /tmp/tests/email-templates/internal-user-to-existing-user.txt"
 	docker exec mailserver_default /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:587 -starttls smtp < /tmp/tests/email-templates/internal-rejected-user-to-existing-user.txt"
-
-	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-existing-user.txt"
-	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-existing-user-spam-learning.txt"
-	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-valid-user-subaddress.txt"
-	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-non-existing-user.txt"
-	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-existing-alias.txt"
-	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-spam-to-existing-user.txt"
-	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-virus-to-existing-user.txt"
-	docker exec mailserver_sieve /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:587 -starttls smtp < /tmp/tests/email-templates/internal-user-to-existing-user.txt"
-	docker exec mailserver_sieve /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:587 -starttls smtp < /tmp/tests/email-templates/internal-rejected-user-to-existing-user.txt"
 
 	docker exec mailserver_reverse /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-existing-user.txt"
 	docker exec mailserver_reverse /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-valid-user-subaddress-with-default-separator.txt"
@@ -352,7 +315,6 @@ fixtures:
 
 	sleep 2
 	docker exec mailserver_default /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:993 < /tmp/tests/sieve/trigger-spam-ham-learning.txt"
-	docker exec mailserver_sieve /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:993 < /tmp/tests/sieve/trigger-spam-ham-learning.txt"
 	docker exec mailserver_ldap /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:993 < /tmp/tests/sieve/trigger-spam-ham-learning.txt"
 
 	# Wait until all mails have been processed
@@ -361,6 +323,62 @@ fixtures:
 run:
 	./test/bats/bin/bats test/tests.bats
 
+stop_old:
+	-docker rm -f \
+		postgres openldap \
+		mailserver_default mailserver_reverse mailserver_ecdsa \
+		mailserver_ldap mailserver_ldap2 \
+		mailserver_traefik_acmev1 mailserver_traefik_acmev2 || true
+
 clean:
 	docker images --quiet --filter=dangling=true | xargs --no-run-if-empty docker rmi
 	docker volume ls -qf dangling=true | xargs -r docker volume rm
+
+init_more:
+	docker run \
+		-d \
+		--name mailserver_sieve \
+		--link mariadb:mariadb \
+		--link redis:redis \
+		-e DBHOST=mariadb \
+		-e DBPASS=testpasswd \
+		-e RSPAMD_PASSWORD=testpasswd \
+		-e VMAILUID=`id -u` \
+		-e VMAILGID=`id -g` \
+		-e ADD_DOMAINS=domain2.tld,domain3.tld \
+		-e RECIPIENT_DELIMITER=: \
+		-e TESTING=true \
+		-e DEBUG_MODE=true \
+		-v "`pwd`/test/share/tests":/tmp/tests \
+		-v "`pwd`/test/share/ssl/rsa":/var/mail/ssl \
+		-v "`pwd`/test/share/postfix/custom.conf":/var/mail/postfix/custom.conf \
+		-v "`pwd`/test/share/postfix/sender_access":/var/mail/postfix/sender_access \
+		-v "`pwd`/test/share/dovecot/conf.d":/var/mail/dovecot/conf.d \
+		-v "`pwd`/test/share/clamav/unofficial-sigs/user.conf":/var/mail/clamav-unofficial-sigs/user.conf \
+		-h mail.domain.tld \
+		-t $(NAME)
+
+fixtures_more:
+	# Wait for clamav unofficial sigs database update (sieve)
+	docker exec mailserver_sieve /bin/sh -c "while [ -f /var/lib/clamav-unofficial-sigs/pid/clamav-unofficial-sigs.pid ] ; do sleep 1 ; done"
+	# Wait for clamav load databases (sieve)
+	docker exec mailserver_sieve /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 3310 ; do sleep 1 ; done"
+
+	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-existing-user.txt"
+	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-existing-user-spam-learning.txt"
+	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-valid-user-subaddress.txt"
+	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-non-existing-user.txt"
+	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-existing-alias.txt"
+	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-spam-to-existing-user.txt"
+	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-virus-to-existing-user.txt"
+	docker exec mailserver_sieve /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:587 -starttls smtp < /tmp/tests/email-templates/internal-user-to-existing-user.txt"
+	docker exec mailserver_sieve /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:587 -starttls smtp < /tmp/tests/email-templates/internal-rejected-user-to-existing-user.txt"
+
+	sleep 2
+	docker exec mailserver_sieve /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:993 < /tmp/tests/sieve/trigger-spam-ham-learning.txt"
+
+	# Wait until all mails have been processed
+	sleep 10
+
+run_more:
+	./test/bats/bin/bats test/more_tests.bats
