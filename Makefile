@@ -65,6 +65,8 @@ init_postgres:
 		-t postgres:13-alpine
 
 init_ldap: init_openldap init_redis
+	-docker rm -f \
+		mailserver_ldap || true
 	docker run \
 		-d \
 		--name mailserver_ldap \
@@ -117,6 +119,8 @@ fixtures_ldap:
 	docker exec mailserver_ldap /bin/sh -c "while [ -f /var/lib/clamav-unofficial-sigs/pid/clamav-unofficial-sigs.pid ] ; do sleep 1 ; done"
 	# Wait for clamav load databases (ldap)
 	docker exec mailserver_ldap /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 3310 ; do sleep 1 ; done"
+	# Wait for rspamd to start (ldap)
+	docker exec mailserver_ldap /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 11332 ; do sleep 1 ; done"
 
 	docker exec mailserver_ldap /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-existing-user.txt"
 	docker exec mailserver_ldap /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-existing-user-spam-learning.txt"
@@ -138,6 +142,8 @@ stop_ldap:
 		mailserver_ldap || true
 
 init_ldap2: init_openldap init_redis
+	-docker rm -f \
+		mailserver_ldap2 || true
 	docker run \
 		-d \
 		--name mailserver_ldap2 \
@@ -205,6 +211,8 @@ stop_ldap2:
 		mailserver_ldap2 || true
 
 init_default: init_redis init_mariadb
+	-docker rm -f \
+		mailserver_default || true
 
 	sleep 10
 
@@ -230,6 +238,8 @@ init_default: init_redis init_mariadb
 		-t $(NAME)
 
 init_reverse: init_redis init_postgres
+	-docker rm -f \
+		mailserver_reverse || true
 	sleep 10
 	docker run \
 		-d \
@@ -285,6 +295,8 @@ stop_reverse:
 		mailserver_reverse || true
 
 init_ecdsa: init_redis init_mariadb
+	-docker rm -f \
+		mailserver_ecdsa || true
 	sleep 10
 	docker run \
 		-d \
@@ -311,6 +323,8 @@ stop_ecdsa:
 		mailserver_ecdsa || true
 
 init_traefik_acmev1: init_redis init_mariadb
+	-docker rm -f \
+		mailserver_traefik_acmev1 || true
 	docker run \
 		-d \
 		--name mailserver_traefik_acmev1 \
@@ -334,6 +348,8 @@ stop_traefik_acmev1:
 		mailserver_traefik_acmev1 || true
 
 init_traefik_acmev2: init_redis init_mariadb
+	-docker rm -f \
+		mailserver_traefik_acmev2 || true
 	docker run \
 		-d \
 		--name mailserver_traefik_acmev2 \
@@ -362,6 +378,8 @@ fixtures_default:
 	docker exec mailserver_default /bin/sh -c "while [ -f /var/lib/clamav-unofficial-sigs/pid/clamav-unofficial-sigs.pid ] ; do sleep 1 ; done"
 	# Wait for clamav load databases (default)
 	docker exec mailserver_default /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 3310 ; do sleep 1 ; done"
+	# Wait for rspamd to start (default)
+	docker exec mailserver_default /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 11332 ; do sleep 1 ; done"
 
 	docker exec mailserver_default /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-existing-user.txt"
 	docker exec mailserver_default /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-existing-user-spam-learning.txt"
@@ -383,6 +401,8 @@ stop_default:
 		mailserver_default || true
 
 init_sieve: init_redis init_mariadb
+	-docker rm -f \
+		mailserver_sieve || true
 	docker run \
 		-d \
 		--name mailserver_sieve \
@@ -411,6 +431,8 @@ fixtures_sieve:
 	docker exec mailserver_sieve /bin/sh -c "while [ -f /var/lib/clamav-unofficial-sigs/pid/clamav-unofficial-sigs.pid ] ; do sleep 1 ; done"
 	# Wait for clamav load databases (sieve)
 	docker exec mailserver_sieve /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 3310 ; do sleep 1 ; done"
+	# Wait for rspamd to start (sieve)
+	docker exec mailserver_sieve /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 11332 ; do sleep 1 ; done"
 
 	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-existing-user.txt"
 	docker exec mailserver_sieve /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-existing-user-spam-learning.txt"
