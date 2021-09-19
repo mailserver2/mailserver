@@ -37,6 +37,7 @@ init_redis:
 		-d \
 		--name redis \
 		-t redis:6.2-alpine
+	sleep 10
 
 init_mariadb:
 	-docker rm -f \
@@ -214,7 +215,7 @@ init_default: init_redis init_mariadb
 	-docker rm -f \
 		mailserver_default || true
 
-	sleep 10
+	sleep 60
 
 	docker run \
 		-d \

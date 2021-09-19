@@ -487,7 +487,7 @@ load 'test_helper/bats-assert/load'
 }
 
 @test "checking postfix: milter-reject - clamav virus found" {
-  run docker exec mailserver_default grep -i 'milter-reject.*virus found: "{HEX}EICAR.TEST.3.UNOFFICIAL"; from=<virus@gmail.com>' /var/log/mail.log
+  run docker exec mailserver_default grep -i 'milter-reject.*virus found: ".*EICAR.*"; from=<virus@gmail.com>' /var/log/mail.log
   assert_success
 }
 
@@ -641,7 +641,7 @@ load 'test_helper/bats-assert/load'
 }
 
 @test "checking clamav: Eicar-Test-Signature FOUND" {
-  run docker exec mailserver_default grep -i 'EICAR\.TEST\.3\.UNOFFICIAL.*FOUND' /var/log/mail.log
+  run docker exec mailserver_default grep -i 'EICAR.*FOUND' /var/log/mail.log
   assert_success
 }
 
