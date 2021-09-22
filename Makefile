@@ -91,6 +91,8 @@ init_ldap: init_openldap init_redis
 		-e LDAP_FORWARD_ATTRIBUTE="mail" \
 		-e LDAP_GROUP_FILTER="(&(mail=%s)(objectClass=mailGroup))" \
 		-e LDAP_GROUP_ATTRIBUTE="uid" \
+		-e LDAP_GROUP_RESULT_ATTRIBUTE="mail" \
+		-e LDAP_GROUP_RESULT_MEMBER="member" \
 		-e LDAP_SENDER_FILTER="(&(|(mail=%s)(mailalias=%s))(objectClass=mailAccount))" \
 		-e LDAP_SENDER_ATTRIBUTE="mail" \
 		-e LDAP_DOVECOT_USER_ATTRS="=home=/var/mail/vhosts/%d/%n/,=mail=maildir:/var/mail/vhosts/%d/%n/mail/,mailuserquota=quota_rule=*:bytes=%\$$" \

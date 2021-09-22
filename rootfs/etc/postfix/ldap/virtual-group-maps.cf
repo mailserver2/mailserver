@@ -28,9 +28,19 @@ search_base = {{ .LDAP_GROUP_SEARCH_BASE }}
 scope = {{ .LDAP_GROUP_SEARCH_SCOPE }}
 
 query_filter = {{ .LDAP_GROUP_FILTER }}
+
+{{ if ne .LDAP_GROUP_ATTRIBUTE "" }}
 result_attribute = {{ .LDAP_GROUP_ATTRIBUTE }}
+{{ end }}
 
 {{ if ne .LDAP_GROUP_FORMAT "" }}
 result_format = {{ .LDAP_GROUP_FORMAT }}
 {{ end }}
 
+{{ if ne .LDAP_GROUP_RESULT_ATTRIBUTE "" }}
+leaf_result_attribute = {{ .LDAP_GROUP_RESULT_ATTRIBUTE }}
+{{ end }}
+
+{{ if ne .LDAP_GROUP_RESULT_MEMBER "" }}
+special_result_attribute = {{ .LDAP_GROUP_RESULT_MEMBER }}
+{{ end }}

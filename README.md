@@ -392,6 +392,8 @@ When using LDAP authentication the following additional variables become availab
 | **LDAP_GROUP_FILTER**               | The search filter for group lookups                  | *optional*                                   |
 | **LDAP_GROUP_ATTRIBUTE**            | The attributes for group lookup                      | *optional*                                   |
 | **LDAP_GROUP_FORMAT**               | The format for group lookups                         | *optional*                                   |
+| **LDAP_GROUP_RESULT_ATTRIBUTE**     | The leaf result attribute group                      | *optional*                                   |
+| **LDAP_GROUP_RESULT_MEMBER**        | The special result attribute of the group            | *optional*                                   |
 | **LDAP_SENDER_SEARCH_BASE**         | The search base for sender lookups                   | *optional*                                   | ${LDAP_DEFAULT_SEARCH_BASE}  |
 | **LDAP_SENDER_SEARCH_SCOPE**        | The search scope for sender lookups                  | *optional*                                   | ${LDAP_DEFAULT_SEARCH_SCOPE} |
 | **LDAP_SENDER_FILTER**              | The search filter for sender lookups                 | **required**                                 |
