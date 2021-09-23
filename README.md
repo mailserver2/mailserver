@@ -13,11 +13,11 @@ Thank you very much.
 
 ### Build
 
-[![Build Status](https://travis-ci.com/mailserver2/mailserver.svg?branch=master)](https://travis-ci.com/mailserver2/mailserver)
+[![Build Status](https://github.com/mailserver2/mailserver/actions/workflows/master.yml/badge.svg)](https://github.com/mailserver2/mailserver/actions/workflows/master.yml)
 
 ### Docker image
 
-[![](https://images.microbadger.com/badges/image/mailserver2/mailserver:latest.svg)](https://microbadger.com/images/mailserver2/mailserver:latest) [![](https://img.shields.io/docker/automated/mailserver2/mailserver.svg)](https://hub.docker.com/r/mailserver2/mailserver/builds/) [![](https://img.shields.io/docker/pulls/mailserver2/mailserver.svg)](https://hub.docker.com/r/mailserver2/mailserver/) [![](https://img.shields.io/docker/stars/mailserver2/mailserver.svg)](https://hub.docker.com/r/mailserver2/mailserver/) [![](https://img.shields.io/badge/bitcoin-donate-green.svg)](https://keybase.io/hardware)
+[![](https://images.microbadger.com/badges/image/mailserver2/mailserver:latest.svg)](https://microbadger.com/images/mailserver2/mailserver:latest) [![](https://img.shields.io/docker/automated/mailserver2/mailserver.svg)](https://hub.docker.com/r/mailserver2/mailserver/builds/) [![](https://img.shields.io/docker/pulls/mailserver2/mailserver.svg)](https://hub.docker.com/r/mailserver2/mailserver/) [![](https://img.shields.io/docker/stars/mailserver2/mailserver.svg)](https://hub.docker.com/r/mailserver2/mailserver/)
 
 **mailserver2/mailserver** is a simple and full-featured mail server build as a set of multiple docker images, including:
 

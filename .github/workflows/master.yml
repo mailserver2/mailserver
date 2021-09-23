@@ -1,0 +1,19 @@
+name: all tests
+
+on:
+  push:
+    branches: master
+
+jobs:
+  # Run tests
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Run all tests
+        run: make
