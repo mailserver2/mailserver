@@ -63,7 +63,7 @@ init_postgres:
 		-e POSTGRES_USER=postfix \
 		-e POSTGRES_PASSWORD=testpasswd \
 		-v "`pwd`/test/config/postgres":/docker-entrypoint-initdb.d \
-		-t postgres:13-alpine
+		-t postgres:14-alpine
 
 init_ldap: init_openldap init_redis
 	-docker rm -f \
