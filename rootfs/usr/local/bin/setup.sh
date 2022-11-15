@@ -777,7 +777,7 @@ if [ -f "/var/mail/clamav-unofficial-sigs/user.conf" ]; then
   echo "[INFO] clamav-unofficial-sigs is enabled (user configuration found)"
   rm -rf /var/lib/clamav-unofficial-sigs
   ln -s /var/mail/clamav-unofficial-sigs /var/lib/clamav-unofficial-sigs
-  cp -f /var/mail/clamav-unofficial-sigs/user.conf /etc/clamav/unofficial-sigs
+  cp -f /var/mail/clamav-unofficial-sigs/user.conf /etc/clamav-unofficial-sigs
   mkdir -p /var/log/clamav-unofficial-sigs
   clamav-unofficial-sigs.sh --install-cron &>/dev/null
   clamav-unofficial-sigs.sh --install-logrotate &>/dev/null
