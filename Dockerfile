@@ -5,13 +5,18 @@ LABEL description="Simple and full-featured mail server using Docker"
 ARG DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 
+RUN apt-get update && apt-get install -y -q --no-install-recommends curl \
+    && curl https://repo.dovecot.org/DOVECOT-REPO-GPG | gpg --import \ 
+    && gpg --export ED409DA1 > /etc/apt/trusted.gpg.d/dovecot.gpg \
+    && echo 'deb https://repo.dovecot.org/ce-2.3-latest/debian/bullseye bullseye main' > /etc/apt/sources.list.d/dovecot.list
+
 RUN apt-get update && apt-get install -y -q --no-install-recommends \
     postfix postfix-pgsql postfix-mysql postfix-ldap postfix-pcre libsasl2-modules \
     dovecot-core dovecot-imapd dovecot-lmtpd dovecot-pgsql dovecot-mysql dovecot-ldap dovecot-sieve dovecot-managesieved dovecot-pop3d \
     fetchmail libdbi-perl libdbd-pg-perl libdbd-mysql-perl liblockfile-simple-perl \
     clamav clamav-daemon \
     python3-pip python3-setuptools python3-wheel python3-gpg \
-    rsyslog dnsutils curl unbound jq rsync \
+    rsyslog dnsutils unbound jq rsync \
     inotify-tools \
     # To enable compression in imap
     arj bzip2 cabextract cpio file gzip nomarch pax unzip zip \
