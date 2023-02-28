@@ -113,7 +113,7 @@ init_ldap: init_openldap init_redis
 		-v "`pwd`/test/share/postfix/custom.conf":/var/mail/postfix/custom.conf \
 		-v "`pwd`/test/share/postfix/sender_access":/var/mail/postfix/sender_access \
 		-v "`pwd`/test/share/dovecot/conf.d":/var/mail/dovecot/conf.d \
-		-v "`pwd`/test/share/clamav/unofficial-sigs/user.conf":/var/mail/clamav-unofficial-sigs/user.conf \
+		-v "`pwd`/test/share/clamav-unofficial-sigs/user.conf":/var/mail/clamav-unofficial-sigs/user.conf \
 		-h mail.domain.tld \
 		-t $(NAME)
 
@@ -194,7 +194,7 @@ init_ldap2: init_openldap init_redis
 		-v "`pwd`/test/share/postfix/custom.conf":/var/mail/postfix/custom.conf \
 		-v "`pwd`/test/share/postfix/sender_access":/var/mail/postfix/sender_access \
 		-v "`pwd`/test/share/dovecot/conf.d":/var/mail/dovecot/conf.d \
-		-v "`pwd`/test/share/clamav/unofficial-sigs/user.conf":/var/mail/clamav-unofficial-sigs/user.conf \
+		-v "`pwd`/test/share/clamav-unofficial-sigs/user.conf":/var/mail/clamav-unofficial-sigs/user.conf \
 		-h mail.domain.tld \
 		-t $(NAME)
 fixtures_ldap2:
@@ -236,7 +236,7 @@ init_default: init_redis init_mariadb
 		-v "`pwd`/test/share/postfix/custom.conf":/var/mail/postfix/custom.conf \
 		-v "`pwd`/test/share/postfix/sender_access":/var/mail/postfix/sender_access \
 		-v "`pwd`/test/share/dovecot/conf.d":/var/mail/dovecot/conf.d \
-		-v "`pwd`/test/share/clamav/unofficial-sigs/user.conf":/var/mail/clamav-unofficial-sigs/user.conf \
+		-v "`pwd`/test/share/clamav-unofficial-sigs/user.conf":/var/mail/clamav-unofficial-sigs/user.conf \
 		-h mail.domain.tld \
 		-t $(NAME)
 
@@ -425,7 +425,7 @@ init_sieve: init_redis init_mariadb
 		-v "`pwd`/test/share/postfix/custom.conf":/var/mail/postfix/custom.conf \
 		-v "`pwd`/test/share/postfix/sender_access":/var/mail/postfix/sender_access \
 		-v "`pwd`/test/share/dovecot/conf.d":/var/mail/dovecot/conf.d \
-		-v "`pwd`/test/share/clamav/unofficial-sigs/user.conf":/var/mail/clamav-unofficial-sigs/user.conf \
+		-v "`pwd`/test/share/clamav-unofficial-sigs/user.conf":/var/mail/clamav-unofficial-sigs/user.conf \
 		-h mail.domain.tld \
 		-t $(NAME)
 
