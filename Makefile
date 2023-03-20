@@ -1,4 +1,4 @@
-NAME = mailserver2/mailserver:testing
+NAME = ghcr.io/mailserver2/mailserver:testing
 
 all: build-no-cache default reverse ldap ldap2 sieve ecdsa traefik_acmev1 traefik_acmev2 clean
 no-build: default reverse ldap ldap2 sieve ecdsa traefik_acmev1 traefik_acmev2 clean

@@ -38,7 +38,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
   mailserver:
-    image: mailserver2/mailserver:${MAILSERVER_DOCKER_TAG}
+    image: ghcr.io/mailserver2/mailserver:${MAILSERVER_DOCKER_TAG}
     restart: ${RESTART_MODE}
     domainname: ${MAILSERVER_DOMAIN}                    # Mail server A/MX/FQDN & reverse PTR = mail.domain.tld.
     hostname: ${MAILSERVER_HOSTNAME}
@@ -100,7 +100,7 @@ services:
   # http://postfixadmin.sourceforge.net/
   # Configuration : https://github.com/hardware/mailserver/wiki/Postfixadmin-initial-configuration
   postfixadmin:
-    image: mailserver2/postfixadmin:${POSTFIXADMIN_DOCKER_TAG}
+    image: ghcr.io/mailserver2/postfixadmin:${POSTFIXADMIN_DOCKER_TAG}
     restart: ${RESTART_MODE}
     domainname: ${MAILSERVER_DOMAIN}
     hostname: ${MAILSERVER_HOSTNAME}
@@ -130,7 +130,7 @@ services:
   # https://www.rainloop.net/
   # Configuration : https://github.com/hardware/mailserver/wiki/Rainloop-initial-configuration
   rainloop:
-    image: mailserver2/rainloop:${RAINLOOP_DOCKER_TAG}
+    image: ghcr.io/mailserver2/rainloop:${RAINLOOP_DOCKER_TAG}
     restart: ${RESTART_MODE}
     labels:
       - "traefik.enable=true"

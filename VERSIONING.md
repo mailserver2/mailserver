@@ -25,10 +25,25 @@ Follow these steps when an update is ready to be pushed to Docker Hub:
 
 ## Build Example
 
+Make sure to authenticate with GitHub Container Registry first, see below.
+
 ```
 docker build . -t debian-mail-overlay
-docker tag debian-mail-overlay mailserver2/debian-mail-overlay:0.0.0
-docker push mailserver2/debian-mail-overlay:0.0.0
-docker tag debian-mail-overlay mailserver2/debian-mail-overlay:latest
-docker push mailserver2/debian-mail-overlay:latest
+docker tag debian-mail-overlay ghcr.io/mailserver2/debian-mail-overlay:0.0.0
+docker push ghcr.io/mailserver2/debian-mail-overlay:0.0.0
+docker tag debian-mail-overlay ghcr.io/mailserver2/debian-mail-overlay:latest
+docker push ghcr.io/mailserver2/debian-mail-overlay:latest
 ```
+
+## Authenticating with GitHub Container Registry
+
+Create a [personal access token](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-with-a-personal-access-token-classic) by going [here](https://github.com/settings/tokens/new?scopes=write:packages,delete:packages).
+Select a suitable name and expiration, leave permissions as `write:packages,delete:packages`. Press "Generate token" button below.
+
+On Linux run:
+
+```
+export CR_PAT=YOUR_TOKEN
+echo $CR_PAT | docker login ghcr.io -u USERNAME --password-stdin
+```
+
