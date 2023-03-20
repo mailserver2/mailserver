@@ -23,7 +23,7 @@ _Please delete options that are not relevant._
 #### Docker information
 ```
 docker info
-docker images mailserver2/mailserver --digests --filter "dangling=false"
+docker images ghcr.io/mailserver2/mailserver --digests --filter "dangling=false"
 ```
 
 #### Description

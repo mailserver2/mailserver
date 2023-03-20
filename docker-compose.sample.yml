@@ -38,7 +38,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
   mailserver:
-    image: mailserver2/mailserver:${MAILSERVER_DOCKER_TAG}
+    image: ghcr.io/mailserver2/mailserver:${MAILSERVER_DOCKER_TAG}
     restart: ${RESTART_MODE}
     domainname: ${MAILSERVER_DOMAIN}                    # Mail server A/MX/FQDN & reverse PTR = mail.domain.tld.
     hostname: ${MAILSERVER_HOSTNAME}
