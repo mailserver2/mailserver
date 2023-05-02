@@ -779,7 +779,7 @@ if [ -f "/var/mail/clamav-unofficial-sigs/user.conf" ]; then
   ln -s /var/mail/clamav-unofficial-sigs /var/lib/clamav-unofficial-sigs
   cp -f /var/mail/clamav-unofficial-sigs/user.conf /etc/clamav-unofficial-sigs
   mkdir -p /var/log/clamav-unofficial-sigs
-  clamav-unofficial-sigs.sh --install-cron &>/dev/null
+  clamav-unofficial-sigs.sh --install-cron &>/dev/null 
   clamav-unofficial-sigs.sh --install-logrotate &>/dev/null
 else
   echo "[INFO] clamav-unofficial-sigs is disabled (user configuration not found)"
