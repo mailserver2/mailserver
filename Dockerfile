@@ -1,4 +1,4 @@
-FROM mailserver2/debian-mail-overlay:1.0.11
+FROM mailserver2/debian-mail-overlay:1.0.12
 
 LABEL description="Simple and full-featured mail server using Docker"
 
@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y -q --no-install-recommends \
     fetchmail libdbi-perl libdbd-pg-perl libdbd-mysql-perl liblockfile-simple-perl \
     clamav clamav-daemon \
     python3-pip python3-setuptools python3-wheel python3-gpg python3-watchdog \
-    rsyslog dnsutils curl unbound jq rsync \
+    rsyslog dnsutils curl unbound unbound-anchor jq rsync \
     inotify-tools \
     # To enable compression in imap
     arj bzip2 cabextract cpio file gzip nomarch pax unzip zip \

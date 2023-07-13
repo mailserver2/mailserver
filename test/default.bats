@@ -626,7 +626,7 @@ load 'test_helper/bats-assert/load'
 #
 
 @test "checking clamav: TCP Bound to 3310 port" {
-  run docker exec mailserver_default grep -i 'TCP: Bound to \[0.0.0.0\]:3310' /var/log/mail.log
+  run docker exec mailserver_default grep -i 'TCP: Bound to \[\]:3310' /var/log/mail.log
   assert_success
 }
 
@@ -804,7 +804,7 @@ load 'test_helper/bats-assert/load'
 #
 
 @test "checking ssl: generated default cert works correctly" {
-  run docker exec mailserver_default /bin/sh -c "timeout 1 openssl s_client -ign_eof -connect 0.0.0.0:587 -starttls smtp | grep 'Verify return code: 18 (self signed certificate)'"
+  run docker exec mailserver_default /bin/sh -c "timeout 1 openssl s_client -ign_eof -connect 0.0.0.0:587 -starttls smtp | grep 'Verify return code: 18 (self-signed certificate)'"
   assert_success
 }
 
