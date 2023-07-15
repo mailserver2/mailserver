@@ -198,7 +198,7 @@ init_ldap2: init_openldap init_redis
 		-h mail.domain.tld \
 		-t $(NAME)
 fixtures_ldap2:
-	sleep 20
+	docker exec mailserver_ldap2 /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 25 ; do sleep 1 ; done"
 	docker exec mailserver_ldap2 /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-existing-user.txt"
 	docker exec mailserver_ldap2 /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-valid-user-subaddress.txt"
 	docker exec mailserver_ldap2 /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-non-existing-user.txt"
@@ -282,6 +282,7 @@ init_reverse: init_redis init_postgres
 		-v "`pwd`/test/share/letsencrypt":/etc/letsencrypt \
 		-t $(NAME)
 fixtures_reverse:
+	docker exec mailserver_reverse /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 25 ; do sleep 1 ; done"
 	sleep 30
 	docker exec mailserver_reverse /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-existing-user.txt"
 	docker exec mailserver_reverse /bin/sh -c "nc 0.0.0.0 25 < /tmp/tests/email-templates/external-to-valid-user-subaddress-with-default-separator.txt"
