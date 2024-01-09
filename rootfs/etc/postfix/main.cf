@@ -25,6 +25,18 @@ mynetworks    = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 {{ .RELAY_NETWORKS 
 
 alias_maps = hash:/etc/aliases
 
+
+################################
+## SMTP smuggling mitigation  ##
+################################
+smtpd_forbid_bare_newline            = yes
+smtpd_forbid_bare_newline_exclusions = $mynetworks
+
+# https://www.postfix.org/smtp-smuggling.html#long
+# Optionally disconnect remote SMTP clients that send bare newlines,
+# but allow local clients with non-standard SMTP implementations
+# such as netcat, fax machines, or load balancer health checks.
+
 ###############
 ## SMTP/UTF8 ##
 ###############
