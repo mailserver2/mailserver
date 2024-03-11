@@ -43,7 +43,7 @@ Thank you very much.
 
 - [mailserver2/mailserver](#mailserver2mailserver)
   - [Fork](#fork)
-  - [Chat & questions](#chat--questions)
+  - [Chat \& questions](#chat--questions)
   - [Build](#build)
   - [Docker image](#docker-image)
   - [Summary](#summary)
@@ -86,6 +86,7 @@ Thank you very much.
   - [IPv6 support](#ipv6-support)
   - [Persistent files and folders in /mnt/docker/mail Docker volume](#persistent-files-and-folders-in-mntdockermail-docker-volume)
   - [Override postfix configuration](#override-postfix-configuration)
+  - [Whitelist Hosts/IP Addresses In Postfix](#whitelist-hostsip-addresses-in-postfix)
   - [Custom configuration for Dovecot](#custom-configuration-for-dovecot)
   - [Postfix blacklist](#postfix-blacklist)
   - [Email client settings](#email-client-settings)
@@ -113,6 +114,9 @@ Please check, if your system meets the following minimum requirements:
 | ---- | -------------- | ----------- |
 | CPU  | 1 GHz          | 1 GHz       |
 | RAM  | 512 MiB        | 1 GiB       |
+
+**NOTE**: If you are having problems with clamd using too much memory on startup, set `CLAMD_MEMORY_FIX` to `true`.
+See [the ClamAV documentation](https://docs.clamav.net/manual/Installing/Docker.html#what-can-i-do-to-minimize-ram-usage) for details.
 
 <p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
 
@@ -331,6 +335,7 @@ If you use Ansible, I recommend you to go to see [@ksylvan](https://github.com/k
 | **WHITELIST_SPAM_ADDRESSES**     | List of whitelisted email addresses separated by commas                                  | *optional*          | null                  |
 | **DISABLE_RSPAMD_MODULE**        | List of disabled modules separated by commas                                             | *optional*          | null                  |
 | **DISABLE_CLAMAV**               | Disable virus scanning                                                                   | *optional*          | false                 |
+| **CLAMD_MEMORY_FIX**             | Will add `ConcurrentDatabaseReload no` in clamd.conf                                     | *optional*          | false                 |
 | **DISABLE_SIEVE**                | Disable ManageSieve protocol                                                             | *optional*          | false                 |
 | **DISABLE_SIGNING**              | Disable DKIM/ARC signing                                                                 | *optional*          | false                 |
 | **DISABLE_GREYLISTING**          | Disable greylisting policy                                                               | *optional*          | false                 |
@@ -1123,7 +1128,7 @@ NOQUEUE: reject: 554 5.7.1 <john.doe@domain.tld>: Sender address rejected: Acces
 - Dovecot 2.2.27
 - Rspamd 1.9.4
 - Fetchmail 6.3.26
-- ClamAV 0.100.3
+- ClamAV 1.0.3
 - Clamav Unofficial Sigs 5.6.2
 - Zeyple 1.2.2
 - Unbound 1.6.0

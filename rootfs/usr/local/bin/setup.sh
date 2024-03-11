@@ -733,6 +733,10 @@ sed -i -e 's/^Foreground .*$/Foreground true/g' \
        -e 's/^LogFacility .*$/LogFacility LOG_MAIL/g' \
        /etc/clamav/clamd.conf
 
+if [ "$CLAMD_MEMORY_FIX" = true ]; then
+  echo "ConcurrentDatabaseReload no" >> /etc/clamav/clamd.conf
+fi
+
 # FRESHCLAM
 # ---------------------------------------------------------------------------------------------
 
