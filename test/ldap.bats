@@ -12,7 +12,7 @@ load 'test_helper/bats-assert/load'
 }
 
 @test "checking system: all environment variables have been replaced (ldap configuration)" {
-  run docker exec mailserver_ldap /bin/bash -c "egrep -R -I "{{.*}}" /etc/postfix /etc/postfixadmin/fetchmail.conf /etc/dovecot /etc/rspamd /etc/cron.d /etc/mailname /usr/local/bin"
+  run docker exec mailserver_ldap /bin/bash -c "egrep -R -I "{{.*}}" /etc/postfix /etc/postfixadmin/fetchmail.conf /etc/dovecot /etc/rspamd/local.d /etc/cron.d /etc/mailname /usr/local/bin"
   assert_failure
 }
 
