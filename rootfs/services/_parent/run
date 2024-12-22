@@ -12,6 +12,9 @@
 # 8. clamd     (antivirus, is launched after database update)
 # 9. watcher   (watches for cert file changes)
 
+# give s6-svscan time to start
+sleep 1
+
 s6-svc -u /services/rsyslogd && s6-svwait -u /services/rsyslogd
 s6-svc -u /services/unbound  && [ "$DISABLE_DNS_RESOLVER" = true ] || s6-svwait -u /services/unbound
 s6-svc -u /services/postfix  && s6-svwait -u /services/postfix
