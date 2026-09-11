@@ -551,8 +551,6 @@ load 'test_helper/bats-assert/load'
 @test "checking postfix: check some folders in queue directory" {
   run docker exec mailserver_default [ -d /var/mail/postfix/spool/usr/lib/sasl2 ]
   assert_success
-  run docker exec mailserver_default [ -d /var/mail/postfix/spool/usr/lib/zoneinfo ]
-  assert_success
 }
 
 @test "checking postfix: check dovecot unix sockets in queue directory" {

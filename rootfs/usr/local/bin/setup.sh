@@ -530,7 +530,9 @@ if ! getent passwd vmail > /dev/null; then
 fi
 
 # Create all needed folders in queue directory
-for subdir in "" etc dev usr usr/lib usr/lib/sasl2 usr/lib/zoneinfo public maildrop; do
+# usr/lib/zoneinfo is not listed: Debian's postfix (>= 3.9.1-4) deletes it
+# from the chroot on startup as unused
+for subdir in "" etc dev usr usr/lib usr/lib/sasl2 public maildrop; do
   mkdir -p  /var/mail/postfix/spool/$subdir
   chmod 755 /var/mail/postfix/spool/$subdir
 done
