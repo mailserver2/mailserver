@@ -511,8 +511,23 @@ ln -s /var/mail/dovecot /var/lib/dovecot
 # ---------------------------------------------------------------------------------------------
 
 # Create vmail user
-groupadd -g "$VMAILGID" vmail &> /dev/null
-useradd -g vmail -u "$VMAILUID" vmail -d /var/mail &> /dev/null
+# The output used to be discarded, which hid a collision on VMAILUID/VMAILGID:
+# the container then started without a vmail user and dovecot 2.4 died with
+# "service(auth) User doesn't exist: vmail". Note Debian 13 occupies UID/GID
+# 999 (systemd-journal), which Debian 12 left free.
+if ! getent group vmail > /dev/null; then
+  if ! groupadd -g "$VMAILGID" vmail; then
+    echo "[ERROR] Could not create the vmail group with GID $VMAILGID. That GID is probably already taken inside the image, set VMAILGID to a free one."
+    touch /etc/setup-error
+  fi
+fi
+
+if ! getent passwd vmail > /dev/null; then
+  if ! useradd -g vmail -u "$VMAILUID" vmail -d /var/mail; then
+    echo "[ERROR] Could not create the vmail user with UID $VMAILUID. That UID is probably already taken inside the image, set VMAILUID to a free one."
+    touch /etc/setup-error
+  fi
+fi
 
 # Create all needed folders in queue directory
 for subdir in "" etc dev usr usr/lib usr/lib/sasl2 usr/lib/zoneinfo public maildrop; do
