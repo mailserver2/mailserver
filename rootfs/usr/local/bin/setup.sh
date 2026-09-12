@@ -437,7 +437,7 @@ fi
 # Disable greylisting policy
 if [ "$DISABLE_GREYLISTING" = true ]; then
   echo "[INFO] Greylisting policy is disabled"
-  echo "enabled = false;" > /etc/rspamd/local.d/greylisting.conf
+  echo "enabled = false;" > /etc/rspamd/local.d/greylist.conf
 else
   echo "[INFO] Greylisting policy is enabled"
 fi

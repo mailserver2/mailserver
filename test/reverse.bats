@@ -327,7 +327,7 @@ load 'test_helper/bats-assert/load'
 }
 
 @test "checking rspamd: greylisting policy is disabled (reverse configuration)" {
-  run docker exec mailserver_reverse cat /etc/rspamd/local.d/greylisting.conf
+  run docker exec mailserver_reverse cat /etc/rspamd/local.d/greylist.conf
   assert_success
   assert_output "enabled = false;"
 }
