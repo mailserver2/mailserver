@@ -1,0 +1,12 @@
+HELO mx.gmail.com
+MAIL FROM: user@gmail.com
+RCPT TO: tiny.quota@domain.tld
+DATA
+From: Docker Mail Server <user@gmail.com>
+To: Tiny Quota <tiny.quota@domain.tld>
+Date: Sat, 28 Nov 2016 12:00:00 +0200
+Subject: Test Message
+Test:external-to-tiny-quota-rejected
+
+.
+QUIT

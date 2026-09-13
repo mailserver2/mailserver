@@ -1,18 +1,90 @@
+ldap_uris = ldap://{{ .DBHOST }}:{{ .DBPORT }}
+ldap_version = 3
+ldap_deref = never
+
+{{ if eq .LDAP_BIND "true" }}
+ldap_auth_dn = {{ .LDAP_BIND_DN }}
+ldap_auth_dn_password = {{ .LDAP_BIND_PW }}
+{{ end }}
+
 {{ if eq .LDAP_MASTER_USER_ENABLED "true" }}
 auth_master_user_separator = {{ .LDAP_MASTER_USER_SEPARATOR }}
-passdb {
+
+passdb ldap_master {
   driver = ldap
-  args = /etc/dovecot/dovecot-ldap-master.conf.ext
   master = yes
-  pass = yes
+  # 2.3 spelled this "pass = yes"
+  result_success = continue
+
+  ldap_base = {{ .LDAP_MASTER_USER_SEARCH_BASE }}
+{{ if eq .LDAP_MASTER_USER_SEARCH_SCOPE "sub" }}
+  ldap_scope = subtree
+{{ else if eq .LDAP_MASTER_USER_SEARCH_SCOPE "base" }}
+  ldap_scope = base
+{{ else if eq .LDAP_MASTER_USER_SEARCH_SCOPE "one" }}
+  ldap_scope = onelevel
+{{ end }}
+{{ if eq .LDAP_BIND "true" }}
+  ldap_bind = yes
+{{ else }}
+  ldap_bind = no
+{{ end }}
+  ldap_filter = {{ .LDAP_DOVECOT_MASTER_PASS_FILTER }}
+{{ if ne .LDAP_DOVECOT_MASTER_PASS_ATTRS "" }}
+
+  fields {
+    {{ .LDAP_DOVECOT_MASTER_PASS_ATTRS | replace "," "\n    " }}
+  }
+{{ end }}
 }
 {{ end }}
-passdb {
-  driver = ldap
-  args = /etc/dovecot/dovecot-ldap.conf.ext
+
+passdb ldap {
+  ldap_base = {{ .LDAP_MAILBOX_SEARCH_BASE }}
+{{ if eq .LDAP_MAILBOX_SEARCH_SCOPE "sub" }}
+  ldap_scope = subtree
+{{ else if eq .LDAP_MAILBOX_SEARCH_SCOPE "base" }}
+  ldap_scope = base
+{{ else if eq .LDAP_MAILBOX_SEARCH_SCOPE "one" }}
+  ldap_scope = onelevel
+{{ end }}
+{{ if eq .LDAP_BIND "true" }}
+  ldap_bind = yes
+{{ else }}
+  ldap_bind = no
+{{ end }}
+  ldap_filter = {{ .LDAP_DOVECOT_PASS_FILTER }}
+{{ if ne .LDAP_DOVECOT_PASS_ATTRS "" }}
+
+  fields {
+    {{ .LDAP_DOVECOT_PASS_ATTRS | replace "," "\n    " }}
+  }
+{{ end }}
 }
 
-userdb {
-  driver = ldap
-  args = /etc/dovecot/dovecot-ldap.conf.ext
+userdb ldap {
+  ldap_base = {{ .LDAP_MAILBOX_SEARCH_BASE }}
+{{ if eq .LDAP_MAILBOX_SEARCH_SCOPE "sub" }}
+  ldap_scope = subtree
+{{ else if eq .LDAP_MAILBOX_SEARCH_SCOPE "base" }}
+  ldap_scope = base
+{{ else if eq .LDAP_MAILBOX_SEARCH_SCOPE "one" }}
+  ldap_scope = onelevel
+{{ end }}
+  ldap_filter = {{ .LDAP_DOVECOT_USER_FILTER }}
+{{ if ne .LDAP_DOVECOT_ITERATE_FILTER "" }}
+  ldap_iterate_filter = {{ .LDAP_DOVECOT_ITERATE_FILTER }}
+{{ end }}
+{{ if ne .LDAP_DOVECOT_USER_ATTRS "" }}
+
+  fields {
+    {{ .LDAP_DOVECOT_USER_ATTRS | replace "," "\n    " }}
+  }
+{{ end }}
+{{ if ne .LDAP_DOVECOT_ITERATE_ATTRS "" }}
+
+  iterate_fields {
+    {{ .LDAP_DOVECOT_ITERATE_ATTRS | replace "," "\n    " }}
+  }
+{{ end }}
 }

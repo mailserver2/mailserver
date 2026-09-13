@@ -38,9 +38,9 @@ load 'test_helper/bats-assert/load'
   run docker exec mailserver_traefik_acmev2 /bin/sh -c "doveconf -h mail_debug 2>/dev/null"
   assert_success
   assert_output "yes"
-  run docker exec mailserver_traefik_acmev2 /bin/sh -c "doveconf -h verbose_ssl 2>/dev/null"
+  run docker exec mailserver_traefik_acmev2 /bin/sh -c "doveconf -h log_debug 2>/dev/null"
   assert_success
-  assert_output "yes"
+  assert_output "category=ssl"
 }
 
 #

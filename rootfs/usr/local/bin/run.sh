@@ -151,5 +151,13 @@ fi
 # LAUNCH ALL SERVICES
 # ---------------------------------------------------------------------------------------------
 
+# Dovecot sizes service auth { client_limit } from the core count and needs
+# that many open files. Containers commonly inherit a soft limit of 1024;
+# raising it up to the hard limit needs no privilege and every service
+# inherits it from here.
+hard=$(ulimit -Hn)
+[ "$hard" = unlimited ] && hard=1048576
+ulimit -Sn "$hard" || echo "[WARN] Could not raise the open files soft limit to $hard"
+
 echo "[INFO] Starting services"
 exec s6-svscan /services

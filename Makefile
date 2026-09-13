@@ -129,11 +129,11 @@ init_ldap: init_openldap init_redis
 		-e LDAP_GROUP_RESULT_MEMBER="member" \
 		-e LDAP_SENDER_FILTER="(&(|(mail=%s)(mailalias=%s))(objectClass=mailAccount))" \
 		-e LDAP_SENDER_ATTRIBUTE="mail" \
-		-e LDAP_DOVECOT_USER_ATTRS="=home=/var/mail/vhosts/%d/%n/,=mail=maildir:/var/mail/vhosts/%d/%n/mail/,mailuserquota=quota_rule=*:bytes=%\$$" \
-		-e LDAP_DOVECOT_USER_FILTER="(&(mail=%u)(objectClass=mailAccount))" \
-		-e LDAP_DOVECOT_PASS_ATTRS="mail=user,userPassword=password" \
-		-e LDAP_DOVECOT_PASS_FILTER="(&(mail=%u)(objectClass=mailAccount))" \
-		-e LDAP_DOVECOT_ITERATE_ATTRS="mail=user" \
+		-e LDAP_DOVECOT_USER_ATTRS="home=/var/mail/vhosts/%{user|domain}/%{user|username}/,mail_driver=maildir,mail_path=/var/mail/vhosts/%{user|domain}/%{user|username}/mail/,quota_storage_size=%{ldap:mailuserquota}" \
+		-e LDAP_DOVECOT_USER_FILTER="(&(mail=%{user})(objectClass=mailAccount))" \
+		-e LDAP_DOVECOT_PASS_ATTRS="user=%{ldap:mail}" \
+		-e LDAP_DOVECOT_PASS_FILTER="(&(mail=%{user})(objectClass=mailAccount))" \
+		-e LDAP_DOVECOT_ITERATE_ATTRS="user=%{ldap:mail}" \
 		-e LDAP_DOVECOT_ITERATE_FILTER="(objectClass=mailAccount)" \
 		-e DKIM_SELECTOR="mail20190101" \
 		-e VMAILUID=`id -u` \
@@ -206,15 +206,15 @@ init_ldap2: init_openldap init_redis
 		-e LDAP_ALIAS_ATTRIBUTE="mail" \
 		-e LDAP_SENDER_FILTER="(&(|(mail=%s)(mailalias=%s))(objectClass=mailAccount))" \
 		-e LDAP_SENDER_ATTRIBUTE="mail" \
-		-e LDAP_DOVECOT_USER_ATTRS="=home=/var/mail/vhosts/%d/%n/,=mail=maildir:/var/mail/vhosts/%d/%n/mail/,mailuserquota=quota_rule=*:bytes=%\$$" \
-		-e LDAP_DOVECOT_USER_FILTER="(&(mail=%u)(objectClass=mailAccount))" \
-		-e LDAP_DOVECOT_PASS_ATTRS="mail=user,userPassword=password" \
-		-e LDAP_DOVECOT_PASS_FILTER="(&(mail=%u)(objectClass=mailAccount))" \
-		-e LDAP_DOVECOT_ITERATE_ATTRS="mail=user" \
+		-e LDAP_DOVECOT_USER_ATTRS="home=/var/mail/vhosts/%{user|domain}/%{user|username}/,mail_driver=maildir,mail_path=/var/mail/vhosts/%{user|domain}/%{user|username}/mail/,quota_storage_size=%{ldap:mailuserquota}" \
+		-e LDAP_DOVECOT_USER_FILTER="(&(mail=%{user})(objectClass=mailAccount))" \
+		-e LDAP_DOVECOT_PASS_ATTRS="user=%{ldap:mail}" \
+		-e LDAP_DOVECOT_PASS_FILTER="(&(mail=%{user})(objectClass=mailAccount))" \
+		-e LDAP_DOVECOT_ITERATE_ATTRS="user=%{ldap:mail}" \
 		-e LDAP_DOVECOT_ITERATE_FILTER="(objectClass=mailAccount)" \
 		-e LDAP_MASTER_USER_ENABLED=true \
-		-e LDAP_DOVECOT_MASTER_PASS_ATTRS="mail=user,userPassword=password" \
-		-e LDAP_DOVECOT_MASTER_PASS_FILTER="(&(mail=%u)(st=%{login_user})(objectClass=mailAccount))" \
+		-e LDAP_DOVECOT_MASTER_PASS_ATTRS="user=%{ldap:mail}" \
+		-e LDAP_DOVECOT_MASTER_PASS_FILTER="(&(mail=%{user})(st=%{login_user})(objectClass=mailAccount))" \
 		-e DISABLE_CLAMAV=true \
 		-e DISABLE_SIEVE=true \
 		-e DISABLE_SIGNING=true \
@@ -449,6 +449,22 @@ fixtures_default:
 	@timeout $(WAIT_TIMEOUT) sh -c 'until [ -z "$$(docker exec mailserver_default find /var/spool/postfix/incoming /var/spool/postfix/active /var/spool/postfix/maildrop -type f 2>/dev/null)" ]; do sleep 2; done' \
 		|| { echo "TIMEOUT: postfix queue did not drain"; docker exec mailserver_default postqueue -p; exit 1; }
 	docker exec mailserver_default /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:993 < /tmp/tests/sieve/trigger-spam-ham-learning.txt"
+	# Wait until postfix has delivered everything it accepted
+	@echo "Waiting for the postfix queue to drain (mailserver_default) ..."
+	@timeout $(WAIT_TIMEOUT) sh -c 'until [ -z "$$(docker exec mailserver_default find /var/spool/postfix/incoming /var/spool/postfix/active /var/spool/postfix/maildrop -type f 2>/dev/null)" ]; do sleep 2; done' \
+		|| { echo "TIMEOUT: postfix queue did not drain"; docker exec mailserver_default postqueue -p; exit 1; }
+
+	# Push tiny.quota@domain.tld (100 KB) over its limit; the body is generated
+	# because it only has to be big. Grace admits it and fires the quota warnings.
+	docker exec mailserver_default /bin/sh -c "{ echo 'HELO mx.gmail.com'; echo 'MAIL FROM: user@gmail.com'; echo 'RCPT TO: tiny.quota@domain.tld'; echo 'DATA'; echo 'From: Docker Mail Server <user@gmail.com>'; echo 'To: Tiny Quota <tiny.quota@domain.tld>'; echo 'Date: Sat, 28 Nov 2016 12:00:00 +0200'; echo 'Subject: Quota Filler'; echo 'Test:external-to-tiny-quota-filler'; echo ''; yes AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA | head -4000; echo '.'; echo 'QUIT'; } > /tmp/quota-filler.txt"
+	docker exec mailserver_default /bin/sh -c "python3 /tmp/tests/smtp-send.py 0.0.0.0 25 /tmp/quota-filler.txt"
+	# Wait until postfix has delivered everything it accepted
+	@echo "Waiting for the postfix queue to drain (mailserver_default) ..."
+	@timeout $(WAIT_TIMEOUT) sh -c 'until [ -z "$$(docker exec mailserver_default find /var/spool/postfix/incoming /var/spool/postfix/active /var/spool/postfix/maildrop -type f 2>/dev/null)" ]; do sleep 2; done' \
+		|| { echo "TIMEOUT: postfix queue did not drain"; docker exec mailserver_default postqueue -p; exit 1; }
+
+	# Now that the mailbox is over quota, the next message has to be refused.
+	docker exec mailserver_default /bin/sh -c "python3 /tmp/tests/smtp-send.py 0.0.0.0 25 /tmp/tests/email-templates/external-to-tiny-quota-rejected.txt"
 	# Wait until postfix has delivered everything it accepted
 	@echo "Waiting for the postfix queue to drain (mailserver_default) ..."
 	@timeout $(WAIT_TIMEOUT) sh -c 'until [ -z "$$(docker exec mailserver_default find /var/spool/postfix/incoming /var/spool/postfix/active /var/spool/postfix/maildrop -type f 2>/dev/null)" ]; do sleep 2; done' \

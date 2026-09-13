@@ -91,6 +91,11 @@ Thank you very much.
   - [Postfix blacklist](#postfix-blacklist)
   - [Email client settings](#email-client-settings)
   - [Components](#components)
+  - [Migration to Dovecot 2.4 (LDAP lookups)](#migration-to-dovecot-24-ldap-lookups)
+    - [The mapping runs the other way round](#the-mapping-runs-the-other-way-round)
+    - [Password mapping and authentication binds](#password-mapping-and-authentication-binds)
+    - [A converted example](#a-converted-example)
+    - [Checking the result](#checking-the-result)
   - [Migration from Traefik 1 to 2](#migration-from-traefik-1-to-2)
   - [Migration from 1.0 to 1.1](#migration-from-10-to-11)
   - [Migration from hardware/mailserver to mailserver2/mailserver](#migration-from-hardwaremailserver-to-mailserver2mailserver)
@@ -117,6 +122,8 @@ Please check, if your system meets the following minimum requirements:
 
 **NOTE**: If you are having problems with clamd using too much memory on startup, set `CLAMD_MEMORY_FIX` to `true`.
 See [the ClamAV documentation](https://docs.clamav.net/manual/Installing/Docker.html#what-can-i-do-to-minimize-ram-usage) for details.
+
+**NOTE**: Dovecot needs more open files than the soft limit of 1024 that containers commonly inherit. The image raises the soft limit to the hard limit at startup, so nothing is needed unless the hard limit is low as well, in which case Dovecot logs `fd limit (ulimit -n) is lower than required under max. load` at startup: set `ulimits: nofile: 65536` (or higher) on the mailserver service.
 
 <p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
 
@@ -845,23 +852,31 @@ The **LDAP_XXX_ATTRIBUTE** specifies which attribute of the found LDAP objects w
 
 The optional **FORWARD** and **GROUP** lookups are technically identical to the **ALIAS** lookup and could be used interchangeably but are intended for additional alias/group/forward lookups. So you can use aliases using an alias field in your user objects. Forwards as source and destination mapping fields in forwarding objects and group address and group member emails in group objects. But you can also use them in different ways to suit your system.
 
-Then you also have to provide the lookups for Dovecot. These will probably be similar to your postfix lookups but may and will differ in some cases. The variables necessary are **LDAP_DOVECOT_USER_ATTRS**, **LDAP_DOVECOT_USER_FILTER**, **LDAP_DOVECOT_PASS_ATTRS**, **LDAP_DOVECOT_PASS_FILTER**, **LDAP_DOVECOT_ITERATE_ATTRS**, **LDAP_DOVECOT_ITERATE_FILTER**. They correspond directly to the Dovecot variables of the same name. While the user and pass attributes and filters are required, the iterate attributes and filters are not. For more detailed information please look at https://wiki.dovecot.org/AuthDatabase/LDAP/Userdb. Note that multiple attributes may be required per query and must be provided in a different form than for postfix! Here are some examples:
+Then you also have to provide the lookups for Dovecot. These will probably be similar to your postfix lookups but may and will differ in some cases. The variables necessary are **LDAP_DOVECOT_USER_ATTRS**, **LDAP_DOVECOT_USER_FILTER**, **LDAP_DOVECOT_PASS_ATTRS**, **LDAP_DOVECOT_PASS_FILTER**, **LDAP_DOVECOT_ITERATE_ATTRS**, **LDAP_DOVECOT_ITERATE_FILTER**. They correspond directly to the Dovecot variables of the same name. While the user and pass attributes and filters are required, the iterate attributes and filters are not. For more detailed information please look at https://doc.dovecot.org/2.4.1/core/config/auth/databases/ldap.html. Note that multiple attributes may be required per query and must be provided in a different form than for postfix! Here are some examples:
 
 ```
-LDAP_DOVECOT_USER_ATTRS="=home=/var/mail/vhosts/%d/%n/,=mail=maildir:/var/mail/vhosts/%d/%n/mail/,mailuserquota=quota=quota_rule=*:bytes=%\$$"
-LDAP_DOVECOT_USER_FILTER="(&(mail=%u)(objectClass=mailAccount))"
-LDAP_DOVECOT_PASS_ATTRS="mail=user,userPassword=password"
-LDAP_DOVECOT_PASS_FILTER="(&(mail=%u)(objectClass=mailAccount))"
-LDAP_DOVECOT_ITERATE_ATTRS="mail=user"
+LDAP_DOVECOT_USER_ATTRS="home=/var/mail/vhosts/%{user|domain}/%{user|username}/,mail_driver=maildir,mail_path=/var/mail/vhosts/%{user|domain}/%{user|username}/mail/,quota_storage_size=%{ldap:mailuserquota}"
+LDAP_DOVECOT_USER_FILTER="(&(mail=%{user})(objectClass=mailAccount))"
+LDAP_DOVECOT_PASS_ATTRS="user=%{ldap:mail}"
+LDAP_DOVECOT_PASS_FILTER="(&(mail=%{user})(objectClass=mailAccount))"
+LDAP_DOVECOT_ITERATE_ATTRS="user=%{ldap:mail}"
 LDAP_DOVECOT_ITERATE_FILTER="(objectClass=mailAccount)"
 ```
 
-This mailserver also supports the user of master users that are allowed to log into other users mailboxes using their own password. This can be used e.g. for shared mailboxes or external IMAP services that should be able to connect to all inboxes via IMAP while not knowing the users passwords. To enable the use of master users set **LDAP_MASTER_USER_ENABLED** to *true*. With **LDAP_MASTER_USER_SEPARATOR** the separator can be specified (default is \*). So you can log in with the username `normaluser@yoursystem.com*masteruser@yoursystem.com` or `normaluser*masteruser` if you only use usernames as logins. The password then has to be the password of the master user. **LDAP_MASTER_USER_SEARCH_BASE**, **LDAP_MASTER_USER_SEARCH_SCOPE**, **LDAP_DOVECOT_MASTER_USER_ATTRS** and **LDAP_DOVECOT_MASTER_USER_FILTER** work analogous to the Dovecot user lookups. For more detailed documentation please look at https://wiki.dovecot.org/Authentication/MasterUsers . Note that `%u` is the master user name in this case and `%{login_user}` can be used to get the user name of the user to be logged in.
+:warning: These values are Dovecot 2.4 syntax, which the image has shipped since it
+moved to Debian 13. If you are coming from an earlier version your existing values
+need converting first, and nothing will tell you that you forgot - see
+[Migration to Dovecot 2.4 (LDAP lookups)](#migration-to-dovecot-24-ldap-lookups).
+The fields that can be returned are listed under
+https://doc.dovecot.org/2.4.1/core/config/auth/userdb.html and
+https://doc.dovecot.org/2.4.1/core/config/auth/passdb.html
+
+This mailserver also supports the user of master users that are allowed to log into other users mailboxes using their own password. This can be used e.g. for shared mailboxes or external IMAP services that should be able to connect to all inboxes via IMAP while not knowing the users passwords. To enable the use of master users set **LDAP_MASTER_USER_ENABLED** to *true*. With **LDAP_MASTER_USER_SEPARATOR** the separator can be specified (default is \*). So you can log in with the username `normaluser@yoursystem.com*masteruser@yoursystem.com` or `normaluser*masteruser` if you only use usernames as logins. The password then has to be the password of the master user. **LDAP_MASTER_USER_SEARCH_BASE**, **LDAP_MASTER_USER_SEARCH_SCOPE**, **LDAP_DOVECOT_MASTER_USER_ATTRS** and **LDAP_DOVECOT_MASTER_USER_FILTER** work analogous to the Dovecot user lookups. For more detailed documentation please look at https://doc.dovecot.org/2.4.1/core/config/auth/master_users.html . Note that `%{user}` is the master user name in this case and `%{login_user}` can be used to get the user name of the user to be logged in.
 
 ```
 LDAP_MASTER_USER_ENABLED=true
-LDAP_DOVECOT_MASTER_PASS_ATTRS="mail=user,userPassword=password"
-LDAP_DOVECOT_MASTER_PASS_FILTER="(&(mail=%u)(st=%{login_user})(objectClass=mailAccount))"
+LDAP_DOVECOT_MASTER_PASS_ATTRS="user=%{ldap:mail}"
+LDAP_DOVECOT_MASTER_PASS_FILTER="(&(mail=%{user})(st=%{login_user})(objectClass=mailAccount))"
 ```
 
 <p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
@@ -1080,13 +1095,23 @@ protocol imap {
 
 # /mnt/docker/mail/dovecot/conf.d/90-quota.conf
 
-plugin {
-
-  quota_rule2 = Trash:storage=+200M
-  quota_exceeded_message = You have exceeded your mailbox quota.
-
+namespace inbox {
+  mailbox Trash {
+    quota_storage_extra = 200M
+  }
 }
+
+quota_exceeded_message = You have exceeded your mailbox quota.
 ```
+
+:warning: Dovecot 2.4 removed the `plugin { }` block: plugin settings are now
+written at the top level, and many were renamed (`quota_rule` is split into
+`quota_storage_size` / `quota_storage_extra`, `mail_location` into
+`mail_driver` / `mail_path`, and `quota_grace` into `quota_storage_grace`, which
+no longer accepts a percentage). Existing overrides in
+`/mnt/docker/mail/dovecot/conf.d` need converting, as Dovecot 2.4 refuses to
+start on an unknown setting. See
+https://doc.dovecot.org/2.4.1/installation/upgrade/2.3-to-2.4.html
 
 <p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
 
@@ -1135,6 +1160,120 @@ NOQUEUE: reject: 554 5.7.1 <john.doe@domain.tld>: Sender address rejected: Acces
 - s6 2.8.0.1
 - Rsyslog 8.24.0
 - ManageSieve server
+
+<p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
+
+### Migration to Dovecot 2.4 (LDAP lookups)
+
+Dovecot 2.4 came in with the move to Debian 13, and it changed how the LDAP
+lookups are written. The contents of **LDAP_DOVECOT_USER_ATTRS**,
+**LDAP_DOVECOT_PASS_ATTRS**, **LDAP_DOVECOT_ITERATE_ATTRS**,
+**LDAP_DOVECOT_MASTER_PASS_ATTRS** and their matching **_FILTER** variables are
+passed straight through to Dovecot, so a directory-backed setup has to convert
+them before upgrading. Setups using MySQL or PostgreSQL are not affected: those
+queries are built inside the image.
+
+Convert them *before* you upgrade, because nothing reports the problem. Dovecot
+2.4 does not reject a 2.3 style entry - it accepts it as a field whose name it
+does not recognise - so the container starts, `doveconf` is happy, and the only
+symptom is that logins and deliveries fail because the lookup no longer returns a
+home directory, a mail location or a quota.
+
+#### The mapping runs the other way round
+
+A 2.3 entry read `ldapAttribute=dovecotField`, with a leading `=` marking a fixed
+value and `%$` standing for the value of the attribute. A 2.4 entry reads
+`dovecotField=value`, and an LDAP attribute is referenced inside the value as
+`%{ldap:attribute}`:
+
+| 2.3 | 2.4 |
+| --- | --- |
+| `mail=user` | `user=%{ldap:mail}` |
+| `=home=/var/mail/vhosts/%d/%n/` | `home=/var/mail/vhosts/%{user\|domain}/%{user\|username}/` |
+| `=mail=maildir:/var/mail/vhosts/%d/%n/mail/` | `mail_driver=maildir,mail_path=/var/mail/vhosts/%{user\|domain}/%{user\|username}/mail/` |
+| `mailuserquota=quota_rule=*:bytes=%$` | `quota_storage_size=%{ldap:mailuserquota}` |
+
+Three things to watch for:
+
+* The `%` variables changed everywhere, in filters as well as values: `%u` becomes
+  `%{user}`, `%d` becomes `%{user|domain}` and `%n` becomes `%{user|username}`.
+  `%{login_user}` in a master user filter is unchanged.
+* `mail` is gone as a field and is replaced by the pair `mail_driver` and
+  `mail_path`, so one 2.3 entry becomes two.
+* The list is comma separated - **ATTRS** is expanded into Dovecot's `fields { }`
+  block (`iterate_fields { }` for the iterate variant) - so an individual value
+  cannot contain a comma.
+
+The LDAP filters themselves keep the same syntax; only the `%` variables in them
+change.
+
+#### Password mapping and authentication binds
+
+With **LDAP_BIND** set to *true* (the default) Dovecot authenticates by binding to
+the directory as the user and never needs the password hash. Most servers do not
+return `userPassword` to a search, and where 2.3 quietly ignored that, 2.4 logs an
+error for every single login:
+
+```
+Error: ldap: auth_passdb_post settings: Failed to parse configuration: Failed to
+expand passdb_fields/password setting variables: ldap: No such attribute 'userpassword'
+```
+
+Authentication still succeeds, but the log fills up. Drop the password entry from
+**LDAP_DOVECOT_PASS_ATTRS** and **LDAP_DOVECOT_MASTER_PASS_ATTRS** unless you run
+with **LDAP_BIND** set to *false*, where the hash is fetched and compared locally
+and the mapping is still required.
+
+#### A converted example
+
+Before, on Dovecot 2.3:
+
+```
+LDAP_DOVECOT_USER_ATTRS="=home=/var/mail/vhosts/%d/%n/,=mail=maildir:/var/mail/vhosts/%d/%n/mail/,mailuserquota=quota_rule=*:bytes=%$"
+LDAP_DOVECOT_USER_FILTER="(&(mail=%u)(objectClass=mailAccount))"
+LDAP_DOVECOT_PASS_ATTRS="mail=user,userPassword=password"
+LDAP_DOVECOT_PASS_FILTER="(&(mail=%u)(objectClass=mailAccount))"
+LDAP_DOVECOT_ITERATE_ATTRS="mail=user"
+LDAP_DOVECOT_ITERATE_FILTER="(objectClass=mailAccount)"
+```
+
+After, on Dovecot 2.4:
+
+```
+LDAP_DOVECOT_USER_ATTRS="home=/var/mail/vhosts/%{user|domain}/%{user|username}/,mail_driver=maildir,mail_path=/var/mail/vhosts/%{user|domain}/%{user|username}/mail/,quota_storage_size=%{ldap:mailuserquota}"
+LDAP_DOVECOT_USER_FILTER="(&(mail=%{user})(objectClass=mailAccount))"
+LDAP_DOVECOT_PASS_ATTRS="user=%{ldap:mail}"
+LDAP_DOVECOT_PASS_FILTER="(&(mail=%{user})(objectClass=mailAccount))"
+LDAP_DOVECOT_ITERATE_ATTRS="user=%{ldap:mail}"
+LDAP_DOVECOT_ITERATE_FILTER="(objectClass=mailAccount)"
+```
+
+And for master users:
+
+```
+LDAP_DOVECOT_MASTER_PASS_ATTRS="user=%{ldap:mail}"
+LDAP_DOVECOT_MASTER_PASS_FILTER="(&(mail=%{user})(st=%{login_user})(objectClass=mailAccount))"
+```
+
+#### Checking the result
+
+Since a half-converted value fails silently, ask Dovecot what it actually gets
+back for one of your accounts once the new container is up:
+
+```
+docker exec -ti mailserver doveadm user john.doe@domain.tld
+```
+
+The output has to list `home`, `mail_driver` and `mail_path`, plus
+`quota_storage_size` if you map a quota. Anything missing is an entry in
+**LDAP_DOVECOT_USER_ATTRS** that has not been converted - and note that a field
+with an unrecognised name is simply absent here rather than reported. Then confirm
+that a login works and leaves nothing behind in the error log:
+
+```
+docker exec -ti mailserver doveadm auth test john.doe@domain.tld yourpassword
+docker exec -ti mailserver cat /var/log/mail.err
+```
 
 <p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
 
