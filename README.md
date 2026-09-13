@@ -460,8 +460,8 @@ docker exec -ti mailserver encryption.sh import-all-keys
 #### Specify another GPG keyserver
 
 ```
-docker exec -ti mailserver encryption.sh import-key YOUR_KEY_ID hkp://pgp.mit.edu
-docker exec -ti mailserver encryption.sh import-all-keys hkp://keys.gnupg.net
+docker exec -ti mailserver encryption.sh import-key YOUR_KEY_ID hkps://keyserver.ubuntu.com
+docker exec -ti mailserver encryption.sh import-all-keys hkps://keyserver.ubuntu.com
 ```
 
 #### Run other GPG options
