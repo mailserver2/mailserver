@@ -1,0 +1,22 @@
+name: dnsbl loop
+
+on:
+  pull_request:
+    branches: master
+
+jobs:
+  # Repeat the Spamhaus DBL sender check until it is refused or the iterations run out
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Build docker image
+        run: make build-no-cache
+
+      - name: Run the loop
+        run: make dnsbl
