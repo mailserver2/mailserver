@@ -3,6 +3,17 @@ NAME = mailserver2/mailserver:testing
 # Maximum time in seconds to wait for a service to become ready
 WAIT_TIMEOUT = 300
 
+# Optional resolver for the suites that run with DISABLE_DNS_RESOLVER=true
+# (reverse and ldap2).
+# This is here because one of the maintainers has a DNS resolution issue
+# and this allows them to work around it. It is inert when not enabled.
+# To enable, run tests like this:
+#
+#   make reverse TEST_DNS=9.9.9.9
+#
+TEST_DNS ?=
+DNS_FLAG = $(if $(TEST_DNS),--dns $(TEST_DNS),)
+
 all: build-no-cache default reverse ldap ldap2 sieve ecdsa traefik_acmev1 traefik_acmev2 clean
 no-build: default reverse ldap ldap2 sieve ecdsa traefik_acmev1 traefik_acmev2 clean
 default: init_default fixtures_default run_default stop_default
@@ -167,6 +178,7 @@ init_ldap2: init_openldap init_redis
 	docker run \
 		-d \
 		--name mailserver_ldap2 \
+		$(DNS_FLAG) \
 		--link openldap \
 		--link redis:redis \
 		-e DBDRIVER=ldap \
@@ -268,6 +280,7 @@ init_reverse: init_redis init_postgres
 	docker run \
 		-d \
 		--name mailserver_reverse \
+		$(DNS_FLAG) \
 		--link postgres:postgres \
 		--link redis:redis \
 		-e FQDN=mail.domain.tld \
