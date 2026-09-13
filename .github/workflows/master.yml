@@ -3,6 +3,8 @@ name: all tests
 on:
   push:
     branches: master
+  pull_request:
+    branches: master
 
 jobs:
   # Run tests
