@@ -16,16 +16,19 @@ DNS_FLAG = $(if $(TEST_DNS),--dns $(TEST_DNS),)
 
 # Log what dbl.spamhaus.org answers the container's resolver, before any mail
 # is sent. reverse and ldap2 inherit the host resolver, so the answer depends
-# on where the suite runs; without this line a refused resolver shows up only
-# as unexplained delivery failures, and a run that passed says nothing about
-# whether the blocklist answered at all.
+# on where the suite runs; without this a refused resolver shows up only as
+# unexplained delivery failures, and a run that passed says nothing about
+# whether the blocklist answered at all. The first line records which
+# resolver was used: its address as seen by two whoami services, since a
+# healthy Spamhaus answer does not name it (only a refusal does). ttl is the
+# remaining TTL: a full value is a fresh answer, a lower one came from cache.
 #   dbltest.com -> 127.0.1.2      the permanent test listing: the blocklist works
 #   dbltest.com -> 127.255.255.x  this resolver is refused: every sender gets rejected
 #   dbltest.com -> (nothing)      answered nothing: the blocklist is inert
 #   gmail.com   -> (nothing)      the fixtures' sender domain, the name postfix actually looks up
 #   example.com -> (nothing)      expected, it is not listed
 define dnsbl_probe
-	-@docker exec $(1) sh -c 'for q in dbltest.com.dbl.spamhaus.org gmail.com.dbl.spamhaus.org example.com.dbl.spamhaus.org; do out=$$(dig +time=3 +tries=1 +noall +comments +answer A $$q 2>&1); st=$$(printf "%s\n" "$$out" | sed -n "s/.*status: \([A-Z]*\).*/\1/p" | head -1); [ -z "$$st" ] && st=unreachable; a=$$(printf "%s\n" "$$out" | grep "[[:space:]]A[[:space:]]" | sed "s/.*[[:space:]]//" | tr "\n" "," | sed "s/,$$//"); [ -z "$$a" ] && a=-; t=$$(dig +short +time=3 +tries=1 TXT $$q 2>/dev/null | grep "^\"" | head -1); [ -z "$$t" ] && t=-; printf "[dnsbl] %-32s status=%-11s A=%-16s %s\n" "$$q" "$$st" "$$a" "$$t"; done'
+	-@docker exec $(1) sh -c 'ns=$$(awk "/^nameserver/{print \$$2; exit}" /etc/resolv.conf); ak=$$(dig +short +time=3 +tries=1 A whoami.akamai.net 2>/dev/null | grep -v "^;" | head -1); gg=$$(dig +short +time=3 +tries=1 TXT o-o.myaddr.l.google.com 2>/dev/null | grep -v "^;" | grep -v edns0 | head -1 | tr -d "\""); printf "[dnsbl] resolver: nameserver=%s egress-seen-by-akamai=%s egress-seen-by-google=%s\n" "$${ns:--}" "$${ak:--}" "$${gg:--}"; for q in dbltest.com.dbl.spamhaus.org gmail.com.dbl.spamhaus.org example.com.dbl.spamhaus.org; do out=$$(dig +time=3 +tries=1 +noall +comments +answer +authority A $$q 2>&1); st=$$(printf "%s\n" "$$out" | sed -n "s/.*status: \([A-Z]*\).*/\1/p" | head -1); [ -z "$$st" ] && st=unreachable; a=$$(printf "%s\n" "$$out" | grep "[[:space:]]A[[:space:]]" | sed "s/.*[[:space:]]//" | tr "\n" "," | sed "s/,$$//"); [ -z "$$a" ] && a=-; ttl=$$(printf "%s\n" "$$out" | grep -v "^;" | awk "NF>=5{print \$$2; exit}"); [ -z "$$ttl" ] && ttl=-; t=$$(dig +short +time=3 +tries=1 TXT $$q 2>/dev/null | grep "^\"" | head -1); [ -z "$$t" ] && t=-; printf "[dnsbl] %-32s status=%-11s A=%-16s ttl=%-5s %s\n" "$$q" "$$st" "$$a" "$$ttl" "$$t"; done'
 endef
 
 all: build-no-cache default reverse ldap ldap2 sieve ecdsa traefik_acmev1 traefik_acmev2 clean
