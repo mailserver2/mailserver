@@ -588,10 +588,10 @@ if [ "$ENABLE_ENCRYPTION" = true ]; then
 # Generating John Doe GPG key
 s6-setuidgid zeyple gpg --homedir "/var/mail/zeyple/keys" --batch --generate-key <<EOF
   %echo Generating John Doe GPG key
-  Key-Type: default
-  Key-Length: 1024
-  Subkey-Type: default
-  Subkey-Length: 1024
+  Key-Type: RSA
+  Key-Length: 2048
+  Subkey-Type: RSA
+  Subkey-Length: 2048
   Name-Real: John Doe
   Name-Comment: test key
   Name-Email: john.doe@domain.tld
