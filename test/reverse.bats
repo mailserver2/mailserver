@@ -366,6 +366,16 @@ load 'test_helper/bats-assert/load'
   [ "$output" -gt 0 ]
 }
 
+# fixtures_reverse rewrites one watched certificate once. A watcher that
+# reacted to its own reads would start the cycle again and again. The rewritten bytes
+# are identical, so the cycle ends at "Live Certificates match".
+@test "checking ssl: one write to a watched certificate causes exactly one reload (reverse configuration)" {
+  run docker logs mailserver_reverse
+  assert_success
+  [ "$(echo "$output" | grep -c 'Updating SSL certificates and reloading')" -eq 1 ]
+  [ "$(echo "$output" | grep -c 'Live Certificates match')" -eq 1 ]
+}
+
 #
 # dkim
 #

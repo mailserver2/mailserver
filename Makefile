@@ -31,8 +31,8 @@ ldap: init_ldap fixtures_ldap run_ldap stop_ldap
 ldap2: init_ldap2 fixtures_ldap2 run_ldap2 stop_ldap2
 sieve: init_sieve fixtures_sieve run_sieve stop_sieve
 ecdsa: init_ecdsa run_ecdsa stop_ecdsa
-traefik_acmev1: init_traefik_acmev1 run_traefik_acmev1 stop_traefik_acmev1
-traefik_acmev2: init_traefik_acmev2 run_traefik_acmev2 stop_traefik_acmev2
+traefik_acmev1: init_traefik_acmev1 fixtures_traefik_acmev1 run_traefik_acmev1 stop_traefik_acmev1
+traefik_acmev2: init_traefik_acmev2 fixtures_traefik_acmev2 run_traefik_acmev2 stop_traefik_acmev2
 
 build-no-cache:
 	docker build --no-cache -t $(NAME) .
@@ -342,6 +342,16 @@ fixtures_reverse:
 	@echo "Waiting for the postfix queue to drain (mailserver_reverse) ..."
 	@timeout $(WAIT_TIMEOUT) sh -c 'until [ -z "$$(docker exec mailserver_reverse find /var/spool/postfix/incoming /var/spool/postfix/active /var/spool/postfix/maildrop -type f 2>/dev/null)" ]; do sleep 2; done' \
 		|| { echo "TIMEOUT: postfix queue did not drain"; docker exec mailserver_reverse postqueue -p; exit 1; }
+	# One in-place rewrite of a watched certificate (same bytes) has to produce
+	# exactly one reload; the tests count them. Last, so no delivery above is
+	# racing a postfix/dovecot reload.
+	@timeout $(WAIT_TIMEOUT) sh -c 'until docker logs mailserver_reverse 2>&1 | grep -q "Watching /etc/letsencrypt/live"; do sleep 2; done' \
+		|| { echo "TIMEOUT: cert watcher did not start"; docker logs --tail 20 mailserver_reverse; exit 1; }
+	docker exec mailserver_reverse python3 -c "p='/etc/letsencrypt/live/mail.domain.tld/fullchain.pem'; d=open(p,'rb').read(); f=open(p,'r+b'); f.write(d); f.close()"
+	@timeout $(WAIT_TIMEOUT) sh -c 'until docker logs mailserver_reverse 2>&1 | grep -q "Updating SSL certificates and reloading"; do sleep 2; done' \
+		|| { echo "TIMEOUT: watcher did not react to writing the certificate"; docker logs --tail 20 mailserver_reverse; exit 1; }
+	# Settle time in which a watcher reacting to its own reads would reload again
+	sleep 15
 run_reverse:
 	./test/bats/bin/bats test/reverse.bats
 stop_reverse:
@@ -390,9 +400,22 @@ init_traefik_acmev1: init_redis init_mariadb
 		-e VMAILGID=`id -g` \
 		-e DISABLE_CLAMAV=true \
 		-e TESTING=true \
-		-v "`pwd`/test/share/traefik/acme.v1.json":/etc/letsencrypt/acme/acme.json \
+		-v "`pwd`/test/share/traefik/acme.v1":/etc/letsencrypt/acme \
 		-h mail.domain.tld \
 		-t $(NAME)
+fixtures_traefik_acmev1:
+	# One in-place rewrite of acme.json (same bytes) has to produce exactly one
+	# reload; the tests count them. Postfix and dovecot must be up so the
+	# reload has something to signal.
+	@timeout $(WAIT_TIMEOUT) sh -c 'until docker exec mailserver_traefik_acmev1 nc -z 0.0.0.0 25 && docker exec mailserver_traefik_acmev1 nc -z 0.0.0.0 143; do sleep 2; done' \
+		|| { echo "TIMEOUT: postfix/dovecot not listening"; docker logs --tail 20 mailserver_traefik_acmev1; exit 1; }
+	@timeout $(WAIT_TIMEOUT) sh -c 'until docker logs mailserver_traefik_acmev1 2>&1 | grep -q "Watching /etc/letsencrypt/acme"; do sleep 2; done' \
+		|| { echo "TIMEOUT: cert watcher did not start"; docker logs --tail 20 mailserver_traefik_acmev1; exit 1; }
+	docker exec mailserver_traefik_acmev1 python3 -c "p='/etc/letsencrypt/acme/acme.json'; d=open(p,'rb').read(); f=open(p,'r+b'); f.write(d); f.close()"
+	@timeout $(WAIT_TIMEOUT) sh -c 'until docker logs mailserver_traefik_acmev1 2>&1 | grep -q "Updating SSL certificates and reloading"; do sleep 2; done' \
+		|| { echo "TIMEOUT: watcher did not react to writing acme.json"; docker logs --tail 20 mailserver_traefik_acmev1; exit 1; }
+	# Settle time in which a watcher reacting to its own reads would reload again
+	sleep 15
 run_traefik_acmev1:
 	docker exec mailserver_traefik_acmev1 /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 587 ; do sleep 1 ; done"
 	./test/bats/bin/bats test/traefik_acmev1.bats
@@ -415,9 +438,22 @@ init_traefik_acmev2: init_redis init_mariadb
 		-e VMAILGID=`id -g` \
 		-e DISABLE_CLAMAV=true \
 		-e TESTING=true \
-		-v "`pwd`/test/share/traefik/acme.v2.json":/etc/letsencrypt/acme/acme.json \
+		-v "`pwd`/test/share/traefik/acme.v2":/etc/letsencrypt/acme \
 		-h mail.domain.tld \
 		-t $(NAME)
+fixtures_traefik_acmev2:
+	# One in-place rewrite of acme.json (same bytes) has to produce exactly one
+	# reload; the tests count them. Postfix and dovecot must be up so the
+	# reload has something to signal.
+	@timeout $(WAIT_TIMEOUT) sh -c 'until docker exec mailserver_traefik_acmev2 nc -z 0.0.0.0 25 && docker exec mailserver_traefik_acmev2 nc -z 0.0.0.0 143; do sleep 2; done' \
+		|| { echo "TIMEOUT: postfix/dovecot not listening"; docker logs --tail 20 mailserver_traefik_acmev2; exit 1; }
+	@timeout $(WAIT_TIMEOUT) sh -c 'until docker logs mailserver_traefik_acmev2 2>&1 | grep -q "Watching /etc/letsencrypt/acme"; do sleep 2; done' \
+		|| { echo "TIMEOUT: cert watcher did not start"; docker logs --tail 20 mailserver_traefik_acmev2; exit 1; }
+	docker exec mailserver_traefik_acmev2 python3 -c "p='/etc/letsencrypt/acme/acme.json'; d=open(p,'rb').read(); f=open(p,'r+b'); f.write(d); f.close()"
+	@timeout $(WAIT_TIMEOUT) sh -c 'until docker logs mailserver_traefik_acmev2 2>&1 | grep -q "Updating SSL certificates and reloading"; do sleep 2; done' \
+		|| { echo "TIMEOUT: watcher did not react to writing acme.json"; docker logs --tail 20 mailserver_traefik_acmev2; exit 1; }
+	# Settle time in which a watcher reacting to its own reads would reload again
+	sleep 15
 run_traefik_acmev2:
 	docker exec mailserver_traefik_acmev2 /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 587 ; do sleep 1 ; done"
 	./test/bats/bin/bats test/traefik_acmev2.bats
