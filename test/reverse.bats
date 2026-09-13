@@ -239,17 +239,17 @@ load 'test_helper/bats-assert/load'
 #   echo -ne 'badpassword' | openssl base64
 
 @test "checking smtp (25): STARTTLS AUTH PLAIN works with good password (reverse configuration)" {
-  run docker exec mailserver_reverse /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:25 -starttls smtp < /tmp/tests/auth/smtp-auth-plain.txt 2>&1 | grep -i 'authentication successful'"
+  run docker exec mailserver_reverse /bin/sh -c "python3 /tmp/tests/smtp-send.py --starttls 0.0.0.0 25 /tmp/tests/auth/smtp-auth-plain.txt 2>&1 | grep -i 'authentication successful'"
   assert_success
 }
 
 @test "checking submission (587): STARTTLS AUTH LOGIN works with good password (reverse configuration)" {
-  run docker exec mailserver_reverse /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:587 -starttls smtp < /tmp/tests/auth/smtp-auth-login.txt 2>&1 | grep -i 'authentication successful'"
+  run docker exec mailserver_reverse /bin/sh -c "python3 /tmp/tests/smtp-send.py --starttls 0.0.0.0 587 /tmp/tests/auth/smtp-auth-login.txt 2>&1 | grep -i 'authentication successful'"
   assert_success
 }
 
 @test "checking smtps (465): SSL/TLS AUTH LOGIN works with good password (reverse configuration)" {
-  run docker exec mailserver_reverse /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:465 < /tmp/tests/auth/smtp-auth-login.txt 2>&1 | grep -i 'authentication successful'"
+  run docker exec mailserver_reverse /bin/sh -c "python3 /tmp/tests/smtp-send.py --tls 0.0.0.0 465 /tmp/tests/auth/smtp-auth-login.txt 2>&1 | grep -i 'authentication successful'"
   assert_success
 }
 

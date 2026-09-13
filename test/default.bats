@@ -273,42 +273,42 @@ load 'test_helper/bats-assert/load'
 #   echo -ne 'badpassword' | openssl base64
 
 @test "checking smtp (25): STARTTLS AUTH PLAIN works with good password (default configuration)" {
-  run docker exec mailserver_default /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:25 -starttls smtp < /tmp/tests/auth/smtp-auth-plain.txt 2>&1 | grep -i 'authentication successful'"
+  run docker exec mailserver_default /bin/sh -c "python3 /tmp/tests/smtp-send.py --starttls 0.0.0.0 25 /tmp/tests/auth/smtp-auth-plain.txt 2>&1 | grep -i 'authentication successful'"
   assert_success
 }
 
 @test "checking smtp (25): STARTTLS AUTH PLAIN fails with bad password" {
-  run docker exec mailserver_default /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:25 -starttls smtp < /tmp/tests/auth/smtp-auth-plain-wrong.txt 2>&1 | grep -i 'authentication failed'"
+  run docker exec mailserver_default /bin/sh -c "python3 /tmp/tests/smtp-send.py --starttls 0.0.0.0 25 /tmp/tests/auth/smtp-auth-plain-wrong.txt 2>&1 | grep -i 'authentication failed'"
   assert_success
 }
 
 @test "checking smtp (25): clear auth disabled" {
-  run docker exec mailserver_default /bin/sh -c "nc -w 2 0.0.0.0 25 < /tmp/tests/auth/smtp-auth-plain.txt | grep -i 'authentication not enabled'"
+  run docker exec mailserver_default /bin/sh -c "python3 /tmp/tests/smtp-send.py 0.0.0.0 25 /tmp/tests/auth/smtp-auth-plain.txt | grep -i 'authentication not enabled'"
   assert_success
 }
 
 @test "checking submission (587): STARTTLS AUTH LOGIN works with good password (default configuration)" {
-  run docker exec mailserver_default /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:587 -starttls smtp < /tmp/tests/auth/smtp-auth-login.txt 2>&1 | grep -i 'authentication successful'"
+  run docker exec mailserver_default /bin/sh -c "python3 /tmp/tests/smtp-send.py --starttls 0.0.0.0 587 /tmp/tests/auth/smtp-auth-login.txt 2>&1 | grep -i 'authentication successful'"
   assert_success
 }
 
 @test "checking submission (587): STARTTLS AUTH LOGIN fails with bad password" {
-  run docker exec mailserver_default /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:587 -starttls smtp < /tmp/tests/auth/smtp-auth-login-wrong.txt 2>&1 | grep -i 'authentication failed'"
+  run docker exec mailserver_default /bin/sh -c "python3 /tmp/tests/smtp-send.py --starttls 0.0.0.0 587 /tmp/tests/auth/smtp-auth-login-wrong.txt 2>&1 | grep -i 'authentication failed'"
   assert_success
 }
 
 @test "checking submission (587): Auth without STARTTLS fail" {
-  run docker exec mailserver_default /bin/sh -c "nc -w 2 0.0.0.0 587 < /tmp/tests/auth/smtp-auth-plain.txt | grep -i 'Must issue a STARTTLS command first'"
+  run docker exec mailserver_default /bin/sh -c "python3 /tmp/tests/smtp-send.py 0.0.0.0 587 /tmp/tests/auth/smtp-auth-plain.txt | grep -i 'Must issue a STARTTLS command first'"
   assert_success
 }
 
 @test "checking smtps (465): SSL/TLS AUTH LOGIN works with good password (default configuration)" {
-  run docker exec mailserver_default /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:465 < /tmp/tests/auth/smtp-auth-login.txt 2>&1 | grep -i 'authentication successful'"
+  run docker exec mailserver_default /bin/sh -c "python3 /tmp/tests/smtp-send.py --tls 0.0.0.0 465 /tmp/tests/auth/smtp-auth-login.txt 2>&1 | grep -i 'authentication successful'"
   assert_success
 }
 
 @test "checking smtps (465): SSL/TLS AUTH LOGIN fails with bad password" {
-  run docker exec mailserver_default /bin/sh -c "openssl s_client -ign_eof -connect 0.0.0.0:465 < /tmp/tests/auth/smtp-auth-login-wrong.txt 2>&1 | grep -i 'authentication failed'"
+  run docker exec mailserver_default /bin/sh -c "python3 /tmp/tests/smtp-send.py --tls 0.0.0.0 465 /tmp/tests/auth/smtp-auth-login-wrong.txt 2>&1 | grep -i 'authentication failed'"
   assert_success
 }
 
