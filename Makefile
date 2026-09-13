@@ -14,6 +14,20 @@ WAIT_TIMEOUT = 300
 TEST_DNS ?=
 DNS_FLAG = $(if $(TEST_DNS),--dns $(TEST_DNS),)
 
+# Log what dbl.spamhaus.org answers the container's resolver, before any mail
+# is sent. reverse and ldap2 inherit the host resolver, so the answer depends
+# on where the suite runs; without this line a refused resolver shows up only
+# as unexplained delivery failures, and a run that passed says nothing about
+# whether the blocklist answered at all.
+#   dbltest.com -> 127.0.1.2      the permanent test listing: the blocklist works
+#   dbltest.com -> 127.255.255.x  this resolver is refused: every sender gets rejected
+#   dbltest.com -> (nothing)      answered nothing: the blocklist is inert
+#   gmail.com   -> (nothing)      the fixtures' sender domain, the name postfix actually looks up
+#   example.com -> (nothing)      expected, it is not listed
+define dnsbl_probe
+	-@docker exec $(1) sh -c 'for q in dbltest.com.dbl.spamhaus.org gmail.com.dbl.spamhaus.org example.com.dbl.spamhaus.org; do out=$$(dig +time=3 +tries=1 +noall +comments +answer A $$q 2>&1); st=$$(printf "%s\n" "$$out" | sed -n "s/.*status: \([A-Z]*\).*/\1/p" | head -1); [ -z "$$st" ] && st=unreachable; a=$$(printf "%s\n" "$$out" | grep "[[:space:]]A[[:space:]]" | sed "s/.*[[:space:]]//" | tr "\n" "," | sed "s/,$$//"); [ -z "$$a" ] && a=-; t=$$(dig +short +time=3 +tries=1 TXT $$q 2>/dev/null | grep "^\"" | head -1); [ -z "$$t" ] && t=-; printf "[dnsbl] %-32s status=%-11s A=%-16s %s\n" "$$q" "$$st" "$$a" "$$t"; done'
+endef
+
 all: build-no-cache default reverse ldap ldap2 sieve ecdsa traefik_acmev1 traefik_acmev2 clean
 no-build: default reverse ldap ldap2 sieve ecdsa traefik_acmev1 traefik_acmev2 clean
 default: init_default fixtures_default run_default stop_default
@@ -232,6 +246,7 @@ fixtures_ldap2:
 	docker exec mailserver_ldap2 /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 11332 ; do sleep 1 ; done"  # rspamd
 	docker exec mailserver_ldap2 /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 993 ; do sleep 1 ; done"  # dovecot imaps
 	docker exec mailserver_ldap2 /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 587 ; do sleep 1 ; done"  # submission
+	$(call dnsbl_probe,mailserver_ldap2)
 	docker exec mailserver_ldap2 /bin/sh -c "python3 /tmp/tests/smtp-send.py 0.0.0.0 25 /tmp/tests/email-templates/external-to-existing-user.txt"
 	docker exec mailserver_ldap2 /bin/sh -c "python3 /tmp/tests/smtp-send.py 0.0.0.0 25 /tmp/tests/email-templates/external-to-valid-user-subaddress.txt"
 	docker exec mailserver_ldap2 /bin/sh -c "python3 /tmp/tests/smtp-send.py 0.0.0.0 25 /tmp/tests/email-templates/external-to-non-existing-user.txt"
@@ -321,6 +336,7 @@ fixtures_reverse:
 	docker exec mailserver_reverse /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 11332 ; do sleep 1 ; done"  # rspamd
 	docker exec mailserver_reverse /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 993 ; do sleep 1 ; done"  # dovecot imaps
 	docker exec mailserver_reverse /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 587 ; do sleep 1 ; done"  # submission
+	$(call dnsbl_probe,mailserver_reverse)
 	docker exec mailserver_reverse /bin/sh -c "python3 /tmp/tests/smtp-send.py 0.0.0.0 25 /tmp/tests/email-templates/external-to-existing-user.txt"
 	docker exec mailserver_reverse /bin/sh -c "python3 /tmp/tests/smtp-send.py 0.0.0.0 25 /tmp/tests/email-templates/external-to-valid-user-subaddress-with-default-separator.txt"
 	docker exec mailserver_reverse /bin/sh -c "python3 /tmp/tests/smtp-send.py 0.0.0.0 25 /tmp/tests/email-templates/external-to-non-existing-user.txt"
@@ -423,6 +439,7 @@ fixtures_default:
 	# Wait for rspamd to start (default)
 	docker exec mailserver_default /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 11332 ; do sleep 1 ; done"
 
+	$(call dnsbl_probe,mailserver_default)
 	docker exec mailserver_default /bin/sh -c "python3 /tmp/tests/smtp-send.py 0.0.0.0 25 /tmp/tests/email-templates/external-to-existing-user.txt"
 	docker exec mailserver_default /bin/sh -c "python3 /tmp/tests/smtp-send.py 0.0.0.0 25 /tmp/tests/email-templates/external-to-existing-user-spam-learning.txt"
 	docker exec mailserver_default /bin/sh -c "python3 /tmp/tests/smtp-send.py 0.0.0.0 25 /tmp/tests/email-templates/external-to-valid-user-subaddress.txt"
