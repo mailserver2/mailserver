@@ -181,14 +181,18 @@ smtpd_relay_restrictions=
 # * reject_non_fqdn_sender : Reject when the MAIL FROM address is not in fully-qualified domain form
 # * reject_unknown_sender_domain : Reject when the MAIL FROM domain has no DNS MX, no DNS A record or a malformed MX record
 # * reject_sender_login_mismatch: Reject when the client is not (SASL) logged in as that MAIL FROM address owner or when the client is (SASL) logged in, but the client login name doesn't own the MAIL FROM address
-# * reject_rhsbl_sender : Reject when the MAIL FROM domain is blacklisted in dbl.spamhaus.org
+# * reject_rhsbl_sender : Reject when the MAIL FROM domain is blacklisted in dbl.spamhaus.org.
+#   127.0.1.[2..99] are the listing codes; 127.255.255.0/24 reports a problem with the query
+#   itself (refused resolver, too many queries) and must not be read as a listing, so it is
+#   only logged. Without the code filter postfix matches any answer and rejects every sender.
 
 smtpd_sender_restrictions=
     reject_non_fqdn_sender,
     reject_unknown_sender_domain,
     reject_sender_login_mismatch,
     reject_unlisted_sender,
-    reject_rhsbl_sender dbl.spamhaus.org,
+    reject_rhsbl_sender dbl.spamhaus.org=127.0.1.[2..99],
+    warn_if_reject reject_rhsbl_sender dbl.spamhaus.org=127.255.255.[1..255],
     check_sender_access hash:/etc/postfix/sender_access
 
 ##
@@ -201,7 +205,9 @@ smtpd_sender_restrictions=
 # * reject_unknown_recipient_domain : Reject when the RCPT TO domain has no DNS MX or no DNS A record or a malformed MX record
 # * reject_non_fqdn_recipient : Reject when the RCPT TO address is not in fully-qualified domain form
 # * reject_unlisted_recipient : Reject when the RCPT TO address is not listed in the list of valid recipients for its domain
-# * reject_rbl_client : Reject connections from IP addresses blacklisted in zen.spamhaus.org
+# * reject_rbl_client : Reject connections from IP addresses blacklisted in zen.spamhaus.org.
+#   127.0.0.[2..11] are the listing codes; the 127.255.255.0/24 query errors are only logged,
+#   as for dbl.spamhaus.org above.
 
 smtpd_recipient_restrictions=
     permit_mynetworks,
@@ -210,7 +216,8 @@ smtpd_recipient_restrictions=
     reject_non_fqdn_recipient,
     reject_unlisted_recipient,
     check_client_access hash:/etc/postfix/rbl_override,
-    reject_rbl_client zen.spamhaus.org
+    reject_rbl_client zen.spamhaus.org=127.0.0.[2..11],
+    warn_if_reject reject_rbl_client zen.spamhaus.org=127.255.255.[1..255]
 
 ##
 # Restrictions that the Postfix SMTP server applies in the context of a client HELO command
