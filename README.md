@@ -96,6 +96,7 @@ Thank you very much.
     - [Password mapping and authentication binds](#password-mapping-and-authentication-binds)
     - [A converted example](#a-converted-example)
     - [Checking the result](#checking-the-result)
+  - [Clearing the rspamd hyperscan cache after an rspamd upgrade](#clearing-the-rspamd-hyperscan-cache-after-an-rspamd-upgrade)
   - [Migration from Traefik 1 to 2](#migration-from-traefik-1-to-2)
   - [Migration from 1.0 to 1.1](#migration-from-10-to-11)
   - [Migration from hardware/mailserver to mailserver2/mailserver](#migration-from-hardwaremailserver-to-mailserver2mailserver)
@@ -1273,6 +1274,53 @@ that a login works and leaves nothing behind in the error log:
 ```
 docker exec -ti mailserver doveadm auth test john.doe@domain.tld yourpassword
 docker exec -ti mailserver cat /var/log/mail.err
+```
+
+<p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
+
+### Clearing the rspamd hyperscan cache after an rspamd upgrade
+
+Do this once, on an existing installation, when the image you are upgrading to
+ships a different version of rspamd than the one you were running. That is the
+case when moving to the Debian 13 image (rspamd 4.1.5) from `1.1.24` or earlier
+(rspamd 4.1.0), and it will be the case again at the next rspamd version change.
+A new installation does not need it. You can check which version an image has
+before and after the upgrade with:
+
+```
+docker compose exec mailserver rspamd --version
+```
+
+Rspamd compiles its regular expressions into hyperscan databases and caches them
+under `/var/mail/rspamd`, which is a persistent volume. The cache files are named
+after the patterns they hold and carry no engine version, so the new rspamd finds
+the files the old one wrote, cannot deserialise them, and falls back to its
+slower matcher. It does not replace them either: a failed load stops the
+multipattern from being recompiled, so the stale files survive every restart.
+
+Mail filtering is unaffected, but rspamd logs this at error level on every start,
+which also creates `/var/log/mail.err` where there would otherwise be none:
+
+```
+rspamd[…]: <…>; hyperscan; add_cached_file: invalid path: "/var/mail/rspamd/<hash>.hs.zst", error message: No such file or directory
+rspamd[…]: <…>; re_cache; rspamd_re_cache_apply_hyperscan_blob: cannot load hyperscan class <hash>: deserialize failed
+rspamd[…]: <…>; rspamd_worker_multipattern_async_loaded: failed to hot-swap multipattern 'tld' to hyperscan using 'file' cache backend, continuing with ACISM fallback
+```
+
+Delete the cached databases and restart. Only the hyperscan databases are
+removed; rspamd statistics (`*.rrd`), downloaded maps (`*.map`) and the control
+socket are left alone, and the databases are rebuilt on the next start.
+
+```
+docker compose exec mailserver sh -c 'rm -f /var/mail/rspamd/*.hs.zst /var/mail/rspamd/*.hs /var/mail/rspamd/*.unser /var/mail/rspamd/*.hsmp /var/mail/rspamd/*.hsmc'
+docker compose restart mailserver
+```
+
+A minute or so later, both of these should come back empty:
+
+```
+docker compose logs --since 5m mailserver | grep -E 'hot-swap multipattern|cannot read hyperscan cache|add_cached_file: invalid path'
+docker compose exec mailserver ls /var/log/mail.err
 ```
 
 <p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
