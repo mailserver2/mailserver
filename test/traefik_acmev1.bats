@@ -38,9 +38,9 @@ load 'test_helper/bats-assert/load'
   run docker exec mailserver_traefik_acmev1 /bin/sh -c "doveconf -h mail_debug 2>/dev/null"
   assert_success
   assert_output "yes"
-  run docker exec mailserver_traefik_acmev1 /bin/sh -c "doveconf -h verbose_ssl 2>/dev/null"
+  run docker exec mailserver_traefik_acmev1 /bin/sh -c "doveconf -h log_debug 2>/dev/null"
   assert_success
-  assert_output "yes"
+  assert_output "category=ssl"
 }
 
 #
@@ -59,6 +59,16 @@ load 'test_helper/bats-assert/load'
 @test "checking traefik acme v1: acme.json exist" {
   run docker exec mailserver_traefik_acmev1 [ -f /etc/letsencrypt/acme/acme.json ]
   assert_success
+}
+
+# fixtures_traefik_acmev1 rewrites acme.json once. A watcher that reacted to
+# its own reads would start the cycle again and again. The rewritten bytes
+# are identical, so the cycle ends at "Live Certificates match".
+@test "checking traefik acme v1: one write to acme.json causes exactly one reload" {
+  run docker logs mailserver_traefik_acmev1
+  assert_success
+  [ "$(echo "$output" | grep -c 'Updating SSL certificates and reloading')" -eq 1 ]
+  [ "$(echo "$output" | grep -c 'Live Certificates match')" -eq 1 ]
 }
 
 @test "checking traefik acme v1: dump.log doesn't exist" {

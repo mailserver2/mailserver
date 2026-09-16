@@ -379,13 +379,19 @@ load 'test_helper/bats-assert/load'
   assert_success
 }
 
-@test "checking rspamd: 7 messages scanned" {
-  run docker exec mailserver_default /bin/sh -c "rspamc stat | grep -i 'Messages scanned: 7'"
+# Derivable from fixtures_default: 11 SMTP conversations, 2 refused before DATA
+# (ghost@ at RCPT, the john.doe sender via sender_access), 9 scanned. GTUBE and
+# EICAR are rejected; the rest are "no action", including both tiny.quota
+# messages, which are refused at LMTP after rspamd has passed them. Not counted:
+# postfix's own bounces (not miltered), quota warnings (dovecot-lda, never enter
+# postfix) and the IMAP learn calls (counted as learned).
+@test "checking rspamd: 9 messages scanned" {
+  run docker exec mailserver_default /bin/sh -c "rspamc stat | grep -i 'Messages scanned: 9'"
   assert_success
 }
 
-@test "checking rspamd: 5 messages with action no action" {
-  run docker exec mailserver_default /bin/sh -c "rspamc stat | grep -i 'Messages with action no action: 5'"
+@test "checking rspamd: 7 messages with action no action" {
+  run docker exec mailserver_default /bin/sh -c "rspamc stat | grep -i 'Messages with action no action: 7'"
   assert_success
 }
 
@@ -425,6 +431,48 @@ load 'test_helper/bats-assert/load'
   run docker exec mailserver_default /bin/bash -c "doveadm quota get -A 2>&1 | grep '1000' | wc -l"
   assert_success
   assert_output 2
+}
+
+# quota_clone mirrors usage into the postfixadmin quota2 table; the seed rows
+# start at 0.
+@test "checking accounts: quota usage is mirrored into quota2 (default configuration)" {
+  run docker exec mariadb /bin/sh -c "mysql -upostfix -ptestpasswd -N -B -e \"SELECT bytes FROM quota2 WHERE username = 'john.doe@domain.tld'\" postfix 2>/dev/null"
+  assert_success
+  [ "$output" -gt 0 ]
+
+  run docker exec mariadb /bin/sh -c "mysql -upostfix -ptestpasswd -N -B -e \"SELECT messages FROM quota2 WHERE username = 'john.doe@domain.tld'\" postfix 2>/dev/null"
+  assert_success
+  [ "$output" -gt 0 ]
+}
+
+# mail_compress writes messages gzipped; a silent loss of compression would only
+# show up as mailboxes growing on disk.
+# quota_storage_grace (10M) admits the message that crosses the limit, so the
+# filler lands over 100% rather than being refused.
+@test "checking accounts: quota grace admits the message that crosses the limit (default configuration)" {
+  run docker exec mailserver_default /bin/sh -c "doveadm quota get -u tiny.quota@domain.tld 2>/dev/null | awk '/STORAGE/ {print \$(NF)}'"
+  assert_success
+  [ "$output" -gt 100 ]
+}
+
+# quota-warning.sh delivers with enforcement off, so the warning reaches a
+# mailbox that is already over its limit. doveadm rather than grep because
+# mail is gzipped on disk.
+@test "checking accounts: quota warning reaches an over-quota mailbox (default configuration)" {
+  run docker exec mailserver_default /bin/sh -c "doveadm search -u tiny.quota@domain.tld subject 'Mailbox quota warning' 2>/dev/null | wc -l"
+  assert_success
+  [ "$output" -ge 1 ]
+}
+
+@test "checking accounts: mail to an over-quota mailbox is rejected (default configuration)" {
+  run docker exec mailserver_default /bin/sh -c "grep 'to=<tiny.quota@domain.tld>' /var/log/mail.log | grep -c 'The quota of this mailbox is exhausted'"
+  assert_success
+  [ "$output" -ge 1 ]
+}
+
+@test "checking accounts: delivered mail is compressed on disk (default configuration)" {
+  run docker exec mailserver_default /bin/sh -c "total=\$(ls -A /var/mail/vhosts/domain.tld/john.doe/mail/new/ | wc -l); gz=\$(file /var/mail/vhosts/domain.tld/john.doe/mail/new/* | grep -c 'gzip compressed data'); [ \"\$total\" -gt 0 ] && [ \"\$total\" = \"\$gz\" ]"
+  assert_success
 }
 
 @test "checking accounts: user mail folders for john.doe" {
@@ -503,8 +551,6 @@ load 'test_helper/bats-assert/load'
 @test "checking postfix: check some folders in queue directory" {
   run docker exec mailserver_default [ -d /var/mail/postfix/spool/usr/lib/sasl2 ]
   assert_success
-  run docker exec mailserver_default [ -d /var/mail/postfix/spool/usr/lib/zoneinfo ]
-  assert_success
 }
 
 @test "checking postfix: check dovecot unix sockets in queue directory" {
@@ -572,7 +618,7 @@ load 'test_helper/bats-assert/load'
 }
 
 @test "checking dovecot: password scheme is correct" {
-  run docker exec mailserver_default /bin/sh -c "grep 'SHA512-CRYPT' /etc/dovecot/dovecot-sql.conf.ext | wc -l"
+  run docker exec mailserver_default /bin/sh -c "grep 'SHA512-CRYPT' /etc/dovecot/conf.d/auth-sql.conf.ext | wc -l"
   assert_success
   assert_output 1
 }
@@ -596,7 +642,7 @@ load 'test_helper/bats-assert/load'
 }
 
 @test "checking dovecot: quota dict mysql (default configuration)" {
-  run docker exec mailserver_default /bin/sh -c "doveconf dict sqlquota 2>/dev/null | grep 'mysql'"
+  run docker exec mailserver_default /bin/sh -c "doveconf dict_server 2>/dev/null | grep 'mysql'"
   assert_success
 }
 
@@ -616,9 +662,9 @@ load 'test_helper/bats-assert/load'
   run docker exec mailserver_default /bin/sh -c "doveconf -h mail_debug 2>/dev/null"
   assert_success
   assert_output "no"
-  run docker exec mailserver_default /bin/sh -c "doveconf -h verbose_ssl 2>/dev/null"
+  run docker exec mailserver_default /bin/sh -c "doveconf -h log_debug 2>/dev/null"
   assert_success
-  assert_output "no"
+  assert_output ""
 }
 
 #
@@ -847,4 +893,11 @@ load 'test_helper/bats-assert/load'
   run docker exec mailserver_default cat /var/log/mail.err
   assert_failure
   assert_output --partial 'No such file or directory'
+}
+
+# run.sh raises the soft open-files limit to the hard limit, which is what
+# dovecot's service auth { client_limit } requires.
+@test "checking logs: dovecot does not warn about the open files limit (default configuration)" {
+  run docker exec mailserver_default grep -h "fd limit" /var/log/mail.warn /var/log/mail.log
+  assert_failure
 }

@@ -73,6 +73,7 @@ CREATE TABLE `alias` (
 LOCK TABLES `alias` WRITE;
 /*!40000 ALTER TABLE `alias` DISABLE KEYS */;
 INSERT INTO `alias` VALUES ('postmaster@domain.tld','john.doe@domain.tld','domain.tld','2016-11-28 08:54:26','2016-11-28 08:58:19',1),('hostmaster@domain.tld','john.doe@domain.tld','domain.tld','2016-11-28 08:54:26','2016-11-28 08:58:19',1),('john.doe@domain.tld','john.doe@domain.tld','domain.tld','2016-11-28 08:56:47','2016-11-28 08:56:47',1),('sarah.connor@domain.tld','sarah.connor@domain.tld','domain.tld','2016-11-28 08:57:51','2016-11-28 08:57:51',1);
+INSERT INTO `alias` VALUES ('tiny.quota@domain.tld','tiny.quota@domain.tld','domain.tld','2016-11-28 08:58:00','2016-11-28 08:58:00',1);
 /*!40000 ALTER TABLE `alias` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -297,6 +298,7 @@ CREATE TABLE `mailbox` (
 LOCK TABLES `mailbox` WRITE;
 /*!40000 ALTER TABLE `mailbox` DISABLE KEYS */;
 INSERT INTO `mailbox` VALUES ('john.doe@domain.tld','{SHA512-CRYPT}$6$v1LkarodHyGGmfoy$ZszVBzfEZ0CaVnYaBasgvaHJUCNfxwD/E0eNy3iuix56Vl1ZcuDvG9PVr9JRZx5k.7wp1nMb5M1V4aZXo2yfn0','John DOE','domain.tld/john.doe/',1024000,'john.doe','domain.tld','2016-11-28 08:56:47','2016-11-28 08:56:47',1,'','','','2000-01-01 00:00:00'),('sarah.connor@domain.tld','{SHA512-CRYPT}$6$ub.zCcyeaM7Mhs6S$rL4Yj2.Zsk8aFoF5l1mAddVrPo.UZ/1UrNwBC7UTBrX47cViSHo5eepEes6jMqC21P3cBm82adqJZvo91Ekme0','Sarah CONNOR','domain.tld/sarah.connor/',1024000,'sarah.connor','domain.tld','2016-11-28 08:57:51','2016-11-28 08:57:51',1,'','','','2000-01-01 00:00:00');
+INSERT INTO `mailbox` VALUES ('tiny.quota@domain.tld','{SHA512-CRYPT}$6$v1LkarodHyGGmfoy$ZszVBzfEZ0CaVnYaBasgvaHJUCNfxwD/E0eNy3iuix56Vl1ZcuDvG9PVr9JRZx5k.7wp1nMb5M1V4aZXo2yfn0','Tiny QUOTA','domain.tld/tiny.quota/',102400,'tiny.quota','domain.tld','2016-11-28 08:58:00','2016-11-28 08:58:00',1,'','','','2000-01-01 00:00:00');
 /*!40000 ALTER TABLE `mailbox` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -345,7 +347,7 @@ CREATE TABLE `quota2` (
 
 LOCK TABLES `quota2` WRITE;
 /*!40000 ALTER TABLE `quota2` DISABLE KEYS */;
-INSERT INTO `quota2` VALUES ('john.doe@domain.tld',0,0),('sarah.connor@domain.tld',0,0);
+INSERT INTO `quota2` VALUES ('john.doe@domain.tld',0,0),('sarah.connor@domain.tld',0,0),('tiny.quota@domain.tld',0,0);
 /*!40000 ALTER TABLE `quota2` ENABLE KEYS */;
 UNLOCK TABLES;
 

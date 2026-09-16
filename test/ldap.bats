@@ -430,9 +430,9 @@ load 'test_helper/bats-assert/load'
   run docker exec mailserver_ldap /bin/sh -c "doveconf -h mail_debug 2>/dev/null"
   assert_success
   assert_output "no"
-  run docker exec mailserver_ldap /bin/sh -c "doveconf -h verbose_ssl 2>/dev/null"
+  run docker exec mailserver_ldap /bin/sh -c "doveconf -h log_debug 2>/dev/null"
   assert_success
-  assert_output "no"
+  assert_output ""
 }
 
 #

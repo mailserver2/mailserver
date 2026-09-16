@@ -355,6 +355,27 @@ load 'test_helper/bats-assert/load'
   assert_output 2
 }
 
+# Same quota_clone mirroring as the default suite, over the pgsql dict backend.
+@test "checking accounts: quota usage is mirrored into quota2 (reverse configuration)" {
+  run docker exec postgres /bin/sh -c "psql -U postfix -d postfix -t -A -c \"SELECT bytes FROM quota2 WHERE username = 'john.doe@domain.tld'\" 2>/dev/null"
+  assert_success
+  [ "$output" -gt 0 ]
+
+  run docker exec postgres /bin/sh -c "psql -U postfix -d postfix -t -A -c \"SELECT messages FROM quota2 WHERE username = 'john.doe@domain.tld'\" 2>/dev/null"
+  assert_success
+  [ "$output" -gt 0 ]
+}
+
+# fixtures_reverse rewrites one watched certificate once. A watcher that
+# reacted to its own reads would start the cycle again and again. The rewritten bytes
+# are identical, so the cycle ends at "Live Certificates match".
+@test "checking ssl: one write to a watched certificate causes exactly one reload (reverse configuration)" {
+  run docker logs mailserver_reverse
+  assert_success
+  [ "$(echo "$output" | grep -c 'Updating SSL certificates and reloading')" -eq 1 ]
+  [ "$(echo "$output" | grep -c 'Live Certificates match')" -eq 1 ]
+}
+
 #
 # dkim
 #
@@ -416,11 +437,11 @@ load 'test_helper/bats-assert/load'
 @test "checking dovecot: login_greeting value (reverse configuration)" {
   run docker exec mailserver_reverse /bin/sh -c "doveconf -h login_greeting 2>/dev/null"
   assert_success
-  assert_output "Dovecot (Debian) ready."
+  assert_output "Dovecot ready."
 }
 
 @test "checking dovecot: quota dict pgsql (reverse configuration)" {
-  run docker exec mailserver_reverse /bin/sh -c "doveconf dict sqlquota 2>/dev/null | grep 'pgsql'"
+  run docker exec mailserver_reverse /bin/sh -c "doveconf dict_server 2>/dev/null | grep 'pgsql'"
   assert_success
 }
 

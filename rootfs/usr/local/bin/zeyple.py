@@ -12,10 +12,9 @@ import smtplib
 import copy
 from io import BytesIO
 
-try:
-    from configparser import SafeConfigParser  # Python 3
-except ImportError:
-    from ConfigParser import SafeConfigParser  # Python 2
+# SafeConfigParser was removed in Python 3.12 (deprecated since 3.2, and an
+# alias of ConfigParser since Python 3). Debian 13 ships Python 3.13.
+from configparser import ConfigParser
 
 legacy_gpg = False
 try:
@@ -73,7 +72,7 @@ class Zeyple:
     def load_configuration(self, filename):
         """Reads and parses the config file"""
 
-        config = SafeConfigParser()
+        config = ConfigParser()
         config.read([
             os.path.join('/etc/', filename),
             filename,

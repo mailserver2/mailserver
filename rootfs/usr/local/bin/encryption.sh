@@ -6,7 +6,7 @@
 
 OPTIONS=$1
 KEYID=$2
-KEYSERVER=${3:-"hkp://keys.gnupg.net"}
+KEYSERVER=${3:-"hkps://keys.openpgp.org"}
 
 # Zeyple home directory
 ZEYPLE_DIR="/var/mail/zeyple"

@@ -1,9 +1,29 @@
-passdb {
-  driver = sql
-  args = /etc/dovecot/dovecot-sql.conf.ext
+sql_driver = {{ .DBDRIVER }}
+
+{{ if eq .DBDRIVER "pgsql" }}
+pgsql {{ .DBHOST }} {
+  pgsql_parameters {
+    port = {{ .DBPORT }}
+    dbname = {{ .DBNAME }}
+    user = {{ .DBUSER }}
+    password = {{ .DBPASS }}
+  }
+}
+{{ else }}
+mysql {{ .DBHOST }} {
+  mysql_port = {{ .DBPORT }}
+  mysql_dbname = {{ .DBNAME }}
+  mysql_user = {{ .DBUSER }}
+  mysql_password = {{ .DBPASS }}
+}
+{{ end }}
+
+passdb sql {
+  default_password_scheme = {{ .PASSWORD_SCHEME }}
+  query = SELECT password, quota AS userdb_quota_storage_size FROM mailbox WHERE username = '%{user}' AND active = TRUE
 }
 
-userdb {
-  driver = sql
-  args = /etc/dovecot/dovecot-sql.conf.ext
+userdb sql {
+  query = SELECT CONCAT('/var/mail/vhosts/',maildir) AS home, 'maildir' AS mail_driver, CONCAT('/var/mail/vhosts/',maildir,'{{ .VMAIL_SUBDIR }}') AS mail_path, {{ .VMAILUID }} AS uid, {{ .VMAILGID }} AS gid, quota AS quota_storage_size FROM mailbox WHERE username = '%{user}' AND active = TRUE
+  iterate_query = SELECT username AS user FROM mailbox
 }

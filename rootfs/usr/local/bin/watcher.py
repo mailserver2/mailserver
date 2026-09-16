@@ -6,7 +6,7 @@ import time
 import subprocess
 from threading import Timer
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler, RegexMatchingEventHandler
+from watchdog.events import FileSystemEventHandler
 
 
 def debounce(wait):
@@ -35,11 +35,16 @@ class CertFilesHandler(FileSystemEventHandler):
         print("[INFO] Watching %s" % file_path)
         self.observer.schedule(self, file_path)
 
-    def on_any_event(self, event):
+    # Only events that change a file. Reads (opened, closed without write) are
+    # ignored: the reload itself reads the watched files, and reacting to that
+    # would retrigger it indefinitely.
+    def on_changed(self, event):
         if event.is_directory:
             return
         print("[INFO] Watched Event %s" % repr(event))
         self.reload_certificates()
+
+    on_created = on_modified = on_moved = on_deleted = on_closed = on_changed
 
     @debounce(3)
     def reload_certificates(self):
