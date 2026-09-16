@@ -23,8 +23,8 @@ define dnsbl_probe
 	-@docker exec $(1) sh /tmp/tests/dnsbl-probe.sh
 endef
 
-all: build-no-cache default reverse ldap ldap2 sieve ecdsa traefik_acmev1 traefik_acmev2 clean
-no-build: default reverse ldap ldap2 sieve ecdsa traefik_acmev1 traefik_acmev2 clean
+all: build-no-cache default reverse ldap ldap2 sieve ecdsa traefik_acmev1 traefik_acmev2 traefik_v3 clean
+no-build: default reverse ldap ldap2 sieve ecdsa traefik_acmev1 traefik_acmev2 traefik_v3 clean
 default: init_default fixtures_default run_default stop_default
 reverse: init_reverse fixtures_reverse run_reverse stop_reverse
 ldap: init_ldap fixtures_ldap run_ldap stop_ldap
@@ -33,6 +33,7 @@ sieve: init_sieve fixtures_sieve run_sieve stop_sieve
 ecdsa: init_ecdsa run_ecdsa stop_ecdsa
 traefik_acmev1: init_traefik_acmev1 fixtures_traefik_acmev1 run_traefik_acmev1 stop_traefik_acmev1
 traefik_acmev2: init_traefik_acmev2 fixtures_traefik_acmev2 run_traefik_acmev2 stop_traefik_acmev2
+traefik_v3: init_traefik_v3 fixtures_traefik_v3 run_traefik_v3 stop_traefik_v3
 
 build-no-cache:
 	docker build --no-cache -t $(NAME) .
@@ -460,6 +461,46 @@ run_traefik_acmev2:
 stop_traefik_acmev2:
 	-docker rm -f \
 		mailserver_traefik_acmev2 || true
+
+# acme.json as written by Traefik 2 and 3 (they share the format), generated
+# with Traefik 3.6 against a local ACME test server. It holds two certificate
+# resolvers, the case that used to leave the mailserver without a certificate.
+init_traefik_v3: init_redis init_mariadb
+	-docker rm -f \
+		mailserver_traefik_v3 || true
+	docker run \
+		-d \
+		--name mailserver_traefik_v3 \
+		--link mariadb:mariadb \
+		--link redis:redis \
+		-e DBPASS=testpasswd \
+		-e RSPAMD_PASSWORD=testpasswd \
+		-e VMAILUID=`id -u` \
+		-e VMAILGID=`id -g` \
+		-e DISABLE_CLAMAV=true \
+		-e TESTING=true \
+		-v "`pwd`/test/share/traefik/v3":/etc/letsencrypt/acme \
+		-h mail.domain.tld \
+		-t $(NAME)
+fixtures_traefik_v3:
+	# One in-place rewrite of acme.json (same bytes) has to produce exactly one
+	# reload; the tests count them. Postfix and dovecot must be up so the
+	# reload has something to signal.
+	@timeout $(WAIT_TIMEOUT) sh -c 'until docker exec mailserver_traefik_v3 nc -z 0.0.0.0 25 && docker exec mailserver_traefik_v3 nc -z 0.0.0.0 143; do sleep 2; done' \
+		|| { echo "TIMEOUT: postfix/dovecot not listening"; docker logs --tail 20 mailserver_traefik_v3; exit 1; }
+	@timeout $(WAIT_TIMEOUT) sh -c 'until docker logs mailserver_traefik_v3 2>&1 | grep -q "Watching /etc/letsencrypt/acme"; do sleep 2; done' \
+		|| { echo "TIMEOUT: cert watcher did not start"; docker logs --tail 20 mailserver_traefik_v3; exit 1; }
+	docker exec mailserver_traefik_v3 python3 -c "p='/etc/letsencrypt/acme/acme.json'; d=open(p,'rb').read(); f=open(p,'r+b'); f.write(d); f.close()"
+	@timeout $(WAIT_TIMEOUT) sh -c 'until docker logs mailserver_traefik_v3 2>&1 | grep -q "Updating SSL certificates and reloading"; do sleep 2; done' \
+		|| { echo "TIMEOUT: watcher did not react to writing acme.json"; docker logs --tail 20 mailserver_traefik_v3; exit 1; }
+	# Settle time in which a watcher reacting to its own reads would reload again
+	sleep 15
+run_traefik_v3:
+	docker exec mailserver_traefik_v3 /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 587 ; do sleep 1 ; done"
+	./test/bats/bin/bats test/traefik_v3.bats
+stop_traefik_v3:
+	-docker rm -f \
+		mailserver_traefik_v3 || true
 
 fixtures_default:
 
