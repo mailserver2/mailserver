@@ -56,7 +56,7 @@ elif [ "$1" = "update_certs" ]; then
   mkdir -p "$SSL_MOUNT_PATH"
   mkdir -p "$CERT_TEMP_PATH"
   mkdir -p "$LIVE_CERT_PATH"
-  rm -rf "$CERT_TEMP_PATH/*"
+  rm -rf "$CERT_TEMP_PATH"/*
 
   NORMALIZED_CERT_PATH="$CERT_TEMP_PATH"/normalized
   mkdir -p "$NORMALIZED_CERT_PATH"
@@ -74,7 +74,9 @@ elif [ "$1" = "update_certs" ]; then
       sleep 10
     fi
 
-    if jq -e -r '.PrivateKey' "$ACME_FILE" >/dev/null ; then
+    if [ ! -r "$ACME_FILE" ]; then
+      echo "[ERROR] $ACME_FILE is not readable, check its ownership and permissions" | tee -a "$ACME_DUMP"
+    elif jq -e -r '.PrivateKey' "$ACME_FILE" >/dev/null ; then
       echo "[INFO] acme.json found with ACME v1 format, dumping into pem files" | tee -a "$ACME_DUMP"
       dumpcerts.acme.v1.sh "$ACME_FILE" "$CERT_TEMP_PATH" >> "$ACME_DUMP" 2>&1
     elif jq -e -r '.Account.PrivateKey' "$ACME_FILE" >/dev/null ; then
@@ -87,14 +89,15 @@ elif [ "$1" = "update_certs" ]; then
         fi
     elif jq -e -r '.[].Account.PrivateKey' "$ACME_FILE" >/dev/null ; then
         echo "[INFO] acme.json found with Traefik v2 format, dumping into pem files" | tee -a "$ACME_DUMP"
-        dumpcerts.traefik.v2.sh "$ACME_FILE" "$CERT_TEMP_PATH" >> "$ACME_DUMP" 2>&1
+        traefik-certs-dumper file --version v2 --clean=false \
+          --source "$ACME_FILE" --dest "$CERT_TEMP_PATH" >> "$ACME_DUMP" 2>&1
         if [ -e "$CERT_TEMP_PATH"/certs/"*.${DOMAIN}.crt" ] && [ -e "$CERT_TEMP_PATH"/private/"*.${DOMAIN}.key" ]; then
           echo "[INFO] Let's encrypt wildcard certificate found" | tee -a "$ACME_DUMP"
           mv -f "$CERT_TEMP_PATH"/certs/"*.${DOMAIN}.crt" "$CERT_TEMP_PATH"/certs/"$FQDN".crt
           mv -f "$CERT_TEMP_PATH"/private/"*.${DOMAIN}.key" "$CERT_TEMP_PATH"/private/"$FQDN".key
         fi
     else
-      echo "[ERROR] acme.json found but with an unknown format" >> "$ACME_DUMP"
+      echo "[ERROR] acme.json found but with an unknown format" | tee -a "$ACME_DUMP"
     fi
 
     if [ -e "$CERT_TEMP_PATH"/certs/"$FQDN".crt ] && [ -e "$CERT_TEMP_PATH"/private/"$FQDN".key ]; then
@@ -103,8 +106,8 @@ elif [ "$1" = "update_certs" ]; then
       DOMAIN_NAME="$DOMAIN"
     else
       echo "[ERROR] The certificate for ${FQDN} or the private key was not found !"
-      echo "[INFO] Don't forget to add a new traefik frontend rule to generate a certificate for ${FQDN} subdomain"
-      echo "[INFO] Look /mnt/docker/traefik/acme/dump.log and 'docker logs traefik' for more information"
+      echo "[INFO] Don't forget to add a new traefik router rule to generate a certificate for ${FQDN} subdomain"
+      echo "[INFO] Look $ACME_DUMP in the mail volume and 'docker logs traefik' for more information"
       exit 1
     fi
 
@@ -113,6 +116,10 @@ elif [ "$1" = "update_certs" ]; then
     rm -rf "$ACME_DUMP"
     RENEWED_CERTIFICATE=true
   else
+    if [ -d "$ACME_PATH" ] && [ ! -r "$ACME_PATH" ]; then
+      echo "[ERROR] $ACME_PATH is not readable, check its ownership and permissions"
+    fi
+
     echo "[INFO] Traefik SSL certificates not used"
 
     if [ -d "$LETS_ENCRYPT_LIVE_PATH" ]; then
@@ -151,7 +158,7 @@ elif [ "$1" = "update_certs" ]; then
     exit 1
   fi
 
-  rm -rf "$LIVE_CERT_PATH/*"
+  rm -rf "$LIVE_CERT_PATH"/*
   cp -RT "$NORMALIZED_CERT_PATH/." "$LIVE_CERT_PATH"
 
 elif [ "$1" = "reload" ]; then
