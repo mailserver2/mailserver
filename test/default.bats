@@ -388,23 +388,27 @@ load 'test_helper/bats-assert/load'
 # container sends mail: the clamav-unofficial-sigs cron job logs to syslog
 # instead (tested below).
 @test "checking rspamd: 9 messages scanned" {
-  run docker exec mailserver_default /bin/sh -c "rspamc stat | grep -i 'Messages scanned: 9'"
+  run docker exec mailserver_default rspamc stat
   assert_success
+  assert_output --partial 'Messages scanned: 9'
 }
 
 @test "checking rspamd: 7 messages with action no action" {
-  run docker exec mailserver_default /bin/sh -c "rspamc stat | grep -i 'Messages with action no action: 7'"
+  run docker exec mailserver_default rspamc stat
   assert_success
+  assert_output --partial 'Messages with action no action: 7'
 }
 
 @test "checking rspamd: 2 messages with action reject" {
-  run docker exec mailserver_default /bin/sh -c "rspamc stat | grep -i 'Messages with action reject: 2'"
+  run docker exec mailserver_default rspamc stat
   assert_success
+  assert_output --partial 'Messages with action reject: 2'
 }
 
 @test "checking rspamd: 2 messages learned" {
-  run docker exec mailserver_default /bin/sh -c "rspamc stat | grep -i 'Messages learned: 2'"
+  run docker exec mailserver_default rspamc stat
   assert_success
+  assert_output --partial 'Messages learned: 2'
 }
 
 @test "checking rspamd: 1 address whitelisted in default configuration" {
