@@ -799,7 +799,9 @@ chown -R clamav:clamav /var/run/clamav /var/mail/clamav /var/log/clamav
 # CLAMAV-UNOFFICIAL-SIGS
 # ---------------------------------------------------------------------------------------------
 
-if [ -f "/var/mail/clamav-unofficial-sigs/user.conf" ]; then
+if [ "$DISABLE_CLAMAV" = true ]; then
+  echo "[INFO] clamav-unofficial-sigs is disabled (ClamAV is disabled)"
+elif [ -f "/var/mail/clamav-unofficial-sigs/user.conf" ]; then
   echo "[INFO] clamav-unofficial-sigs is enabled (user configuration found)"
   rm -rf /var/lib/clamav-unofficial-sigs
   ln -s /var/mail/clamav-unofficial-sigs /var/lib/clamav-unofficial-sigs
