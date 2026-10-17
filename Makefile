@@ -41,8 +41,11 @@ build-no-cache:
 build:
 	docker build -t $(NAME) .
 
+# Test containers are removed with -v, so the anonymous volumes of the
+# database images (mysql, postgres, redis) go with them instead of
+# piling up on every run.
 init_openldap:
-	-docker rm -f \
+	-docker rm -fv \
 		openldap || true
 	docker run \
 		-d \
@@ -58,7 +61,7 @@ init_openldap:
 		|| { echo "TIMEOUT: openldap did not become ready"; docker logs --tail 50 openldap; exit 1; }
 
 init_redis:
-	-docker rm -f \
+	-docker rm -fv \
 		redis || true
 	docker run \
 		-d \
@@ -69,7 +72,7 @@ init_redis:
 		|| { echo "TIMEOUT: redis did not become ready"; docker logs --tail 50 redis; exit 1; }
 
 init_mariadb:
-	-docker rm -f \
+	-docker rm -fv \
 		mariadb || true
 	docker run \
 		-d \
@@ -86,7 +89,7 @@ init_mariadb:
 		|| { echo "TIMEOUT: mariadb did not become ready"; docker logs --tail 50 mariadb; exit 1; }
 
 init_postgres:
-	-docker rm -f \
+	-docker rm -fv \
 		postgres || true
 	docker run \
 		-d \
@@ -101,7 +104,7 @@ init_postgres:
 		|| { echo "TIMEOUT: postgres did not become ready"; docker logs --tail 50 postgres; exit 1; }
 
 init_ldap: init_openldap init_redis
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_ldap || true
 	docker run \
 		-d \
@@ -179,11 +182,11 @@ fixtures_ldap:
 run_ldap:
 	./test/bats/bin/bats test/ldap.bats
 stop_ldap:
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_ldap || true
 
 init_ldap2: init_openldap init_redis
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_ldap2 || true
 	docker run \
 		-d \
@@ -257,11 +260,11 @@ fixtures_ldap2:
 run_ldap2:
 	./test/bats/bin/bats test/ldap2.bats
 stop_ldap2:
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_ldap2 || true
 
 init_default: init_redis init_mariadb
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_default || true
 
 	docker run \
@@ -286,7 +289,7 @@ init_default: init_redis init_mariadb
 		-t $(NAME)
 
 init_reverse: init_redis init_postgres
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_reverse || true
 	docker run \
 		-d \
@@ -356,11 +359,11 @@ fixtures_reverse:
 run_reverse:
 	./test/bats/bin/bats test/reverse.bats
 stop_reverse:
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_reverse || true
 
 init_ecdsa: init_redis init_mariadb
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_ecdsa || true
 	docker run \
 		-d \
@@ -383,11 +386,11 @@ run_ecdsa:
 	docker exec mailserver_ecdsa /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 587 ; do sleep 1 ; done"
 	./test/bats/bin/bats test/ecdsa.bats
 stop_ecdsa:
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_ecdsa || true
 
 init_traefik_acmev1: init_redis init_mariadb
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_traefik_acmev1 || true
 	docker run \
 		-d \
@@ -421,11 +424,11 @@ run_traefik_acmev1:
 	docker exec mailserver_traefik_acmev1 /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 587 ; do sleep 1 ; done"
 	./test/bats/bin/bats test/traefik_acmev1.bats
 stop_traefik_acmev1:
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_traefik_acmev1 || true
 
 init_traefik_acmev2: init_redis init_mariadb
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_traefik_acmev2 || true
 	docker run \
 		-d \
@@ -459,14 +462,14 @@ run_traefik_acmev2:
 	docker exec mailserver_traefik_acmev2 /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 587 ; do sleep 1 ; done"
 	./test/bats/bin/bats test/traefik_acmev2.bats
 stop_traefik_acmev2:
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_traefik_acmev2 || true
 
 # acme.json as written by Traefik 2 and 3 (they share the format), generated
 # with Traefik 3.6 against a local ACME test server. It holds two certificate
 # resolvers, the case that used to leave the mailserver without a certificate.
 init_traefik_v3: init_redis init_mariadb
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_traefik_v3 || true
 	docker run \
 		-d \
@@ -499,7 +502,7 @@ run_traefik_v3:
 	docker exec mailserver_traefik_v3 /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 587 ; do sleep 1 ; done"
 	./test/bats/bin/bats test/traefik_v3.bats
 stop_traefik_v3:
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_traefik_v3 || true
 
 fixtures_default:
@@ -549,11 +552,11 @@ fixtures_default:
 run_default:
 	./test/bats/bin/bats test/default.bats
 stop_default:
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_default || true
 
 init_sieve: init_redis init_mariadb
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_sieve || true
 	docker run \
 		-d \
@@ -611,7 +614,7 @@ run_sieve:
 	./test/bats/bin/bats test/sieve.bats
 
 stop_sieve:
-	-docker rm -f \
+	-docker rm -fv \
 		mailserver_sieve || true
 
 clean:
