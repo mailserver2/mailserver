@@ -384,7 +384,9 @@ load 'test_helper/bats-assert/load'
 # EICAR are rejected; the rest are "no action", including both tiny.quota
 # messages, which are refused at LMTP after rspamd has passed them. Not counted:
 # postfix's own bounces (not miltered), quota warnings (dovecot-lda, never enter
-# postfix) and the IMAP learn calls (counted as learned).
+# postfix) and the IMAP learn calls (counted as learned). Nothing else in the
+# container sends mail: the clamav-unofficial-sigs cron job logs to syslog
+# instead (tested below).
 @test "checking rspamd: 9 messages scanned" {
   run docker exec mailserver_default /bin/sh -c "rspamc stat | grep -i 'Messages scanned: 9'"
   assert_success
@@ -759,6 +761,19 @@ sigs_cron_job() {
   [ "$(reloads)" -gt "$before" ]
 }
 
+# The update at startup and the hourly one are independent, so the cron job
+# finding another update running is expected, not an error. PID 1 stands in
+# for the running update.
+@test "checking clamav-unofficial-sigs: cron job is quiet while another update runs" {
+  docker exec mailserver_default /bin/sh -c "echo 1 > /var/lib/clamav-unofficial-sigs/pid/clamav-unofficial-sigs.pid"
+  run sigs_cron_job
+  docker exec mailserver_default rm -f /var/lib/clamav-unofficial-sigs/pid/clamav-unofficial-sigs.pid
+  assert_success
+  assert_output ''
+  run docker exec mailserver_default grep 'clamav-unofficial-sigs.*ERROR' /var/log/mail.log
+  assert_failure
+}
+
 # @test "checking clamav-unofficial-sigs: TEST 1 — Html.Sanesecurity.TestSig_Type3_Bdy" {
 #   run docker exec mailserver_default /bin/sh -c "clamscan --database=/var/lib/clamav/phish.ndb - < /tmp/tests/clamav/test1.eml"
 #   assert_failure
@@ -929,5 +944,29 @@ sigs_cron_job() {
 # dovecot's service auth { client_limit } requires.
 @test "checking logs: dovecot does not warn about the open files limit (default configuration)" {
   run docker exec mailserver_default grep -h "fd limit" /var/log/mail.warn /var/log/mail.log
+  assert_failure
+}
+
+# Last on purpose: these make the clamav-unofficial-sigs cron job fail, which
+# writes to mail.log, mail.warn and mail.err, all checked clean above.
+@test "checking clamav-unofficial-sigs: cron job stderr goes to mail.err" {
+  docker exec mailserver_default chown root /var/lib/clamav-unofficial-sigs/configs/current-dbs.txt
+  run sigs_cron_job
+  docker exec mailserver_default chown clamav /var/lib/clamav-unofficial-sigs/configs/current-dbs.txt
+  assert_success
+  assert_output ''
+  run docker exec mailserver_default grep 'clamav-unofficial-sigs.*current-dbs.txt: Permission denied' /var/log/mail.err
+  assert_success
+}
+
+@test "checking clamav-unofficial-sigs: cron job stdout goes to mail.warning" {
+  docker exec mailserver_default chown root /var/log/clamav-unofficial-sigs/clamav-unofficial-sigs.log
+  run sigs_cron_job
+  docker exec mailserver_default chown clamav /var/log/clamav-unofficial-sigs/clamav-unofficial-sigs.log
+  assert_success
+  assert_output ''
+  run docker exec mailserver_default grep 'clamav-unofficial-sigs.*Logging Disabled' /var/log/mail.warn
+  assert_success
+  run docker exec mailserver_default grep 'clamav-unofficial-sigs.*Logging Disabled' /var/log/mail.err
   assert_failure
 }

@@ -706,6 +706,8 @@ clamd[xxxxxx]: Reading databases from /var/lib/clamav
 clamd[xxxxxx]: Database correctly reloaded (6812263 signatures)
 ```
 
+After that the update runs every hour from cron, as the `clamav` user. Its errors and alerts go to the container log, tagged `clamav-unofficial-sigs`: errors also land in `/var/log/mail.err`, alerts (such as a newer clamav-unofficial-sigs version being available) in `/var/log/mail.warn`. The full record of each run is in `/var/log/clamav-unofficial-sigs/clamav-unofficial-sigs.log`.
+
 <p align="right"><a href="#summary">Back to table of contents :arrow_up_small:</a></p>
 
 ### Unbound DNS resolver
