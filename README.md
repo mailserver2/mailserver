@@ -660,7 +660,7 @@ Create your `user.conf` file under `/mnt/docker/mail/clamav-unofficial-sigs` dir
 # 4. In My Accountpage, choose the ClamAV list you will download. Free subscribers only get ClamAV Basic, commercial subscribers have access to ClamAV Extended. Do not use the aggressive lists.
 # 5. In the download URL, you will see 3 parameters: receipt, product and list, enter them in the variables below.
 # malwarepatrol_receipt_code="YOUR-RECEIPT-NUMBER"
-# malwarepatrol_product_code="8"
+# malwarepatrol_product_code="32"
 # malwarepatrol_list="clamav_basic"
 # malwarepatrol_free="yes"
 
@@ -679,10 +679,6 @@ Create your `user.conf` file under `/mnt/docker/mail/clamav-unofficial-sigs` dir
 #   Your 128 character authorization signature would be: your_unique_and_very_long_random_string_of_characters
 # - 6. Enter the authorization signature into the config securiteinfo_authorisation_signature: replacing YOUR-SIGNATURE-NUMBER with your authorization signature from the link
 # securiteinfo_authorisation_signature="YOUR-SIGNATURE-NUMBER"
-
-# We enable Yara rules as they are now working with Clamav releases > 0.100
-yararulesproject_enabled="yes"
-enable_yararules="yes"
 
 # We enable interserver sigs
 interserver_enabled="yes"
