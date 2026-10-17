@@ -729,6 +729,36 @@ load 'test_helper/bats-assert/load'
   assert_success
 }
 
+# The update as cron runs it: the user and command from its cron file, with
+# no terminal. Without a terminal the script first sleeps for up to ten
+# minutes (enable_random), so that is switched off.
+sigs_cron_job() {
+  docker exec mailserver_default /bin/sh -c "grep -q '^enable_random=\"no\"' /etc/clamav-unofficial-sigs/user.conf || echo 'enable_random=\"no\"' >> /etc/clamav-unofficial-sigs/user.conf"
+  docker exec mailserver_default /bin/sh -c "grep -v '^#' /etc/cron.d/clamav-unofficial-sigs | grep . | { read -r m h dom mon dow user cmd; su -s /bin/sh \"\$user\" -c \"\$cmd\"; }"
+}
+
+# cron mails anything the job prints to clamav@<FQDN>, which nobody reads and
+# which rspamd scans on the way (throwing off its counters above), so the job
+# must print nothing.
+@test "checking clamav-unofficial-sigs: cron job runs cleanly as its cron user" {
+  run sigs_cron_job
+  assert_success
+  assert_output ''
+  run docker exec mailserver_default grep clamav-unofficial-sigs /var/log/mail.err
+  assert_failure
+}
+
+# After an update the job reloads clamd with clamd_reload_opt, as its cron user.
+# clamdscan --reload prints nothing, so clamd's own log is the evidence.
+@test "checking clamav-unofficial-sigs: cron user can reload clamd" {
+  reloads() { docker exec mailserver_default grep -c 'Database correctly reloaded' /var/log/clamav/clamav.log || true; }
+  before=$(reloads)
+  run docker exec mailserver_default /bin/sh -c ". /etc/clamav-unofficial-sigs/os.conf; user=\$(grep -v '^#' /etc/cron.d/clamav-unofficial-sigs | grep . | awk '{print \$6}'); su -s /bin/sh \"\$user\" -c \"\$clamd_reload_opt\""
+  assert_success
+  for i in $(seq 60); do [ "$(reloads)" -gt "$before" ] && break; sleep 1; done
+  [ "$(reloads)" -gt "$before" ]
+}
+
 # @test "checking clamav-unofficial-sigs: TEST 1 — Html.Sanesecurity.TestSig_Type3_Bdy" {
 #   run docker exec mailserver_default /bin/sh -c "clamscan --database=/var/lib/clamav/phish.ndb - < /tmp/tests/clamav/test1.eml"
 #   assert_failure

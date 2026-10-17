@@ -507,8 +507,9 @@ stop_traefik_v3:
 
 fixtures_default:
 
-	# Wait for clamav unofficial sigs database update (default)
-	docker exec mailserver_default /bin/sh -c "while [ -f /var/lib/clamav-unofficial-sigs/pid/clamav-unofficial-sigs.pid ] ; do sleep 1 ; done"
+	# Wait for the clamav unofficial sigs update that runs at startup (default).
+	# Its pid file only appears once the update starts, so wait for the log line.
+	docker exec mailserver_default /bin/sh -c "until grep -q 'clamav unofficial signature update done' /var/log/mail.log 2>/dev/null ; do sleep 1 ; done"
 	# Wait for clamav load databases (default)
 	docker exec mailserver_default /bin/sh -c "while ! echo PING | nc -z 0.0.0.0 3310 ; do sleep 1 ; done"
 	# Wait for rspamd to start (default)
