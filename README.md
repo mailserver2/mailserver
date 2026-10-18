@@ -691,7 +691,7 @@ interserver_enabled="yes"
 user_configuration_complete="yes"
 ```
 
-If the startup script detects this file, clamav-unofficial-sigs is automatically enabled and third-party databases downloaded under `/mnt/docker/mail/clamav` after Clamav startup. Once the databases are downloaded, Clamav is asked to reload the signature databases through its socket (`clamdscan --reload`):
+If the startup script detects this file, clamav-unofficial-sigs is automatically enabled and third-party databases downloaded under `/mnt/docker/mail/clamav` after Clamav startup. Once the databases are downloaded and Clamav has finished starting, Clamav is asked to reload the signature databases through its socket (`clamdscan --reload`):
 
 ```
 docker logs -f mailserver

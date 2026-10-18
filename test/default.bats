@@ -765,6 +765,21 @@ sigs_cron_job() {
   [ "$(reloads)" -gt "$before" ]
 }
 
+# While clamd is starting, at container start or after it restarts, it has no
+# socket and ignores SIGUSR2 until it has loaded its databases, so a reload
+# sent then is lost. The updater treats any ERROR in the reload's output as a
+# failure.
+@test "checking clamav-unofficial-sigs: cron user's reload waits for clamd to start" {
+  reloads() { docker exec mailserver_default grep -c 'Database correctly reloaded' /var/log/clamav/clamav.log || true; }
+  before=$(reloads)
+  docker exec mailserver_default /bin/sh -c "s6-svc -d /services/clamd; while pgrep -x clamd > /dev/null; do sleep 0.2; done; s6-svc -u /services/clamd"
+  run docker exec mailserver_default /bin/sh -c ". /etc/clamav-unofficial-sigs/os.conf; user=\$(grep -v '^#' /etc/cron.d/clamav-unofficial-sigs | grep . | awk '{print \$6}'); su -s /bin/sh \"\$user\" -c \"\$clamd_reload_opt\""
+  assert_success
+  refute_output --partial 'ERROR'
+  for i in $(seq 120); do [ "$(reloads)" -gt "$before" ] && break; sleep 1; done
+  [ "$(reloads)" -gt "$before" ]
+}
+
 # The update at startup and the hourly one are independent, so the cron job
 # finding another update running is expected, not an error. PID 1 stands in
 # for the running update.
