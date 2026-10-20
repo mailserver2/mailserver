@@ -7,7 +7,7 @@
 # nobody reads, and the mail is scanned by rspamd on the way. The output goes
 # to syslog instead, with the rest of the container's logs: shell errors
 # (stderr) at mail.err, the script's own ERROR and ALERT lines (stdout) at
-# mail.warning.
+# mail.warning. The job exits with the script's status.
 
 pid_file=/var/lib/clamav-unofficial-sigs/pid/clamav-unofficial-sigs.pid
 
@@ -18,7 +18,10 @@ if [ -f "$pid_file" ] && ps -p "$(cat "$pid_file")" > /dev/null 2>&1; then
   exit 0
 fi
 
-# The script frames its messages with lines of = * - or +, which are dropped.
+# The script frames its messages with lines of = * - or +, which are dropped:
+# by sed, as grep -v fails when it is left with nothing, which under pipefail
+# would fail every quiet run.
+set -o pipefail
 { /usr/local/bin/clamav-unofficial-sigs.sh 2>&1 1>&3 3>&- \
-    | grep -v '^[-=*+]*$' | logger -t clamav-unofficial-sigs -p mail.err; } 3>&1 \
-  | grep -v '^[-=*+]*$' | logger -t clamav-unofficial-sigs -p mail.warning
+    | sed '/^[-=*+]*$/d' | logger -t clamav-unofficial-sigs -p mail.err; } 3>&1 \
+  | sed '/^[-=*+]*$/d' | logger -t clamav-unofficial-sigs -p mail.warning

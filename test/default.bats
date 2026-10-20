@@ -998,3 +998,13 @@ sigs_cron_job() {
   run docker exec mailserver_default grep 'clamav-unofficial-sigs.*Logging Disabled' /var/log/mail.err
   assert_failure
 }
+
+# The job exits with the update's status, not with its loggers'. The update
+# stops straight away when a tool it needs is missing.
+@test "checking clamav-unofficial-sigs: cron job fails when the update fails" {
+  docker exec mailserver_default /bin/sh -c "echo 'clamscan_bin=\"/nonexistent/clamscan\"' >> /etc/clamav-unofficial-sigs/user.conf"
+  run sigs_cron_job
+  docker exec mailserver_default /bin/sh -c "sed -i '/^clamscan_bin=/d' /etc/clamav-unofficial-sigs/user.conf"
+  assert_failure
+  assert_output ''
+}
