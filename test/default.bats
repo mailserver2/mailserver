@@ -735,6 +735,15 @@ load 'test_helper/bats-assert/load'
   assert_success
 }
 
+# The update runs as clamav, at startup and from cron, and reads the copy of
+# user.conf that setup makes. The suite's user.conf is readable by its owner
+# only, as an administrator's may be.
+@test "checking clamav-unofficial-sigs: clamav can read the user configuration" {
+  run docker exec mailserver_default su -s /bin/sh clamav -c "cat /etc/clamav-unofficial-sigs/user.conf"
+  assert_success
+  assert_output --partial 'user_configuration_complete="yes"'
+}
+
 # The update as cron runs it: the user and command from its cron file, with
 # no terminal. Without a terminal the script first sleeps for up to ten
 # minutes (enable_random), so that is switched off.

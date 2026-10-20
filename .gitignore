@@ -4,3 +4,4 @@ traefik.toml
 .env
 certs
 .testing
+test/share/clamav-unofficial-sigs/user.conf.0600

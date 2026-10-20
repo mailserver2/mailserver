@@ -267,6 +267,11 @@ init_default: init_redis init_mariadb
 	-docker rm -fv \
 		mailserver_default || true
 
+	# The clamav-unofficial-sigs update runs as clamav, but an administrator's
+	# user.conf may be readable by its owner only, since it can hold download
+	# tokens. Git does not keep that mode, so this suite mounts a copy with it.
+	install -m 600 test/share/clamav-unofficial-sigs/user.conf test/share/clamav-unofficial-sigs/user.conf.0600
+
 	docker run \
 		-d \
 		--name mailserver_default \
@@ -284,7 +289,7 @@ init_default: init_redis init_mariadb
 		-v "`pwd`/test/share/postfix/custom.conf":/var/mail/postfix/custom.conf \
 		-v "`pwd`/test/share/postfix/sender_access":/var/mail/postfix/sender_access \
 		-v "`pwd`/test/share/dovecot/conf.d":/var/mail/dovecot/conf.d \
-		-v "`pwd`/test/share/clamav-unofficial-sigs/user.conf":/var/mail/clamav-unofficial-sigs/user.conf \
+		-v "`pwd`/test/share/clamav-unofficial-sigs/user.conf.0600":/var/mail/clamav-unofficial-sigs/user.conf \
 		-h mail.domain.tld \
 		-t $(NAME)
 
