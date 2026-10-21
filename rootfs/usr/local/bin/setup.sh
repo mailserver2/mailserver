@@ -799,12 +799,21 @@ chown -R clamav:clamav /var/run/clamav /var/mail/clamav /var/log/clamav
 # CLAMAV-UNOFFICIAL-SIGS
 # ---------------------------------------------------------------------------------------------
 
-if [ -f "/var/mail/clamav-unofficial-sigs/user.conf" ]; then
+if [ "$DISABLE_CLAMAV" = true ]; then
+  echo "[INFO] clamav-unofficial-sigs is disabled (ClamAV is disabled)"
+elif [ -f "/var/mail/clamav-unofficial-sigs/user.conf" ]; then
   echo "[INFO] clamav-unofficial-sigs is enabled (user configuration found)"
   rm -rf /var/lib/clamav-unofficial-sigs
   ln -s /var/mail/clamav-unofficial-sigs /var/lib/clamav-unofficial-sigs
-  cp -f /var/mail/clamav-unofficial-sigs/user.conf /etc/clamav-unofficial-sigs
+  # The update runs as clamav and reads this copy, while the administrator's
+  # file may be readable by its owner only (it can hold download tokens).
+  install -m 640 -g clamav /var/mail/clamav-unofficial-sigs/user.conf /etc/clamav-unofficial-sigs
   mkdir -p /var/log/clamav-unofficial-sigs
+  # The update runs as clamav, at startup and from cron, and has to be able to
+  # write all of its state, including what a volume holds from runs as root.
+  # user.conf is the administrator's file and keeps its owner.
+  find /var/mail/clamav-unofficial-sigs ! -name user.conf -exec chown clamav:clamav {} +
+  chown -R clamav:clamav /var/log/clamav-unofficial-sigs
   clamav-unofficial-sigs.sh --install-cron &>/dev/null 
   clamav-unofficial-sigs.sh --install-logrotate &>/dev/null
 else

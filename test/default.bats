@@ -384,25 +384,31 @@ load 'test_helper/bats-assert/load'
 # EICAR are rejected; the rest are "no action", including both tiny.quota
 # messages, which are refused at LMTP after rspamd has passed them. Not counted:
 # postfix's own bounces (not miltered), quota warnings (dovecot-lda, never enter
-# postfix) and the IMAP learn calls (counted as learned).
+# postfix) and the IMAP learn calls (counted as learned). Nothing else in the
+# container sends mail: the clamav-unofficial-sigs cron job logs to syslog
+# instead (tested below).
 @test "checking rspamd: 9 messages scanned" {
-  run docker exec mailserver_default /bin/sh -c "rspamc stat | grep -i 'Messages scanned: 9'"
+  run docker exec mailserver_default rspamc stat
   assert_success
+  assert_output --partial 'Messages scanned: 9'
 }
 
 @test "checking rspamd: 7 messages with action no action" {
-  run docker exec mailserver_default /bin/sh -c "rspamc stat | grep -i 'Messages with action no action: 7'"
+  run docker exec mailserver_default rspamc stat
   assert_success
+  assert_output --partial 'Messages with action no action: 7'
 }
 
 @test "checking rspamd: 2 messages with action reject" {
-  run docker exec mailserver_default /bin/sh -c "rspamc stat | grep -i 'Messages with action reject: 2'"
+  run docker exec mailserver_default rspamc stat
   assert_success
+  assert_output --partial 'Messages with action reject: 2'
 }
 
 @test "checking rspamd: 2 messages learned" {
-  run docker exec mailserver_default /bin/sh -c "rspamc stat | grep -i 'Messages learned: 2'"
+  run docker exec mailserver_default rspamc stat
   assert_success
+  assert_output --partial 'Messages learned: 2'
 }
 
 @test "checking rspamd: 1 address whitelisted in default configuration" {
@@ -729,6 +735,73 @@ load 'test_helper/bats-assert/load'
   assert_success
 }
 
+# The update runs as clamav, at startup and from cron, and reads the copy of
+# user.conf that setup makes. The suite's user.conf is readable by its owner
+# only, as an administrator's may be.
+@test "checking clamav-unofficial-sigs: clamav can read the user configuration" {
+  run docker exec mailserver_default su -s /bin/sh clamav -c "cat /etc/clamav-unofficial-sigs/user.conf"
+  assert_success
+  assert_output --partial 'user_configuration_complete="yes"'
+}
+
+# The update as cron runs it: the user and command from its cron file, with
+# no terminal. Without a terminal the script first sleeps for up to ten
+# minutes (enable_random), so that is switched off.
+sigs_cron_job() {
+  docker exec mailserver_default /bin/sh -c "grep -q '^enable_random=\"no\"' /etc/clamav-unofficial-sigs/user.conf || echo 'enable_random=\"no\"' >> /etc/clamav-unofficial-sigs/user.conf"
+  docker exec mailserver_default /bin/sh -c "grep -v '^#' /etc/cron.d/clamav-unofficial-sigs | grep . | { read -r m h dom mon dow user cmd; su -s /bin/sh \"\$user\" -c \"\$cmd\"; }"
+}
+
+# cron mails anything the job prints to clamav@<FQDN>, which nobody reads and
+# which rspamd scans on the way (throwing off its counters above), so the job
+# must print nothing.
+@test "checking clamav-unofficial-sigs: cron job runs cleanly as its cron user" {
+  run sigs_cron_job
+  assert_success
+  assert_output ''
+  run docker exec mailserver_default grep clamav-unofficial-sigs /var/log/mail.err
+  assert_failure
+}
+
+# After an update the job reloads clamd with clamd_reload_opt, as its cron user.
+# clamdscan --reload prints nothing, so clamd's own log is the evidence.
+@test "checking clamav-unofficial-sigs: cron user can reload clamd" {
+  reloads() { docker exec mailserver_default grep -c 'Database correctly reloaded' /var/log/clamav/clamav.log || true; }
+  before=$(reloads)
+  run docker exec mailserver_default /bin/sh -c ". /etc/clamav-unofficial-sigs/os.conf; user=\$(grep -v '^#' /etc/cron.d/clamav-unofficial-sigs | grep . | awk '{print \$6}'); su -s /bin/sh \"\$user\" -c \"\$clamd_reload_opt\""
+  assert_success
+  for i in $(seq 60); do [ "$(reloads)" -gt "$before" ] && break; sleep 1; done
+  [ "$(reloads)" -gt "$before" ]
+}
+
+# While clamd is starting, at container start or after it restarts, it has no
+# socket and ignores SIGUSR2 until it has loaded its databases, so a reload
+# sent then is lost. The updater treats any ERROR in the reload's output as a
+# failure.
+@test "checking clamav-unofficial-sigs: cron user's reload waits for clamd to start" {
+  reloads() { docker exec mailserver_default grep -c 'Database correctly reloaded' /var/log/clamav/clamav.log || true; }
+  before=$(reloads)
+  docker exec mailserver_default /bin/sh -c "s6-svc -d /services/clamd; while pgrep -x clamd > /dev/null; do sleep 0.2; done; s6-svc -u /services/clamd"
+  run docker exec mailserver_default /bin/sh -c ". /etc/clamav-unofficial-sigs/os.conf; user=\$(grep -v '^#' /etc/cron.d/clamav-unofficial-sigs | grep . | awk '{print \$6}'); su -s /bin/sh \"\$user\" -c \"\$clamd_reload_opt\""
+  assert_success
+  refute_output --partial 'ERROR'
+  for i in $(seq 120); do [ "$(reloads)" -gt "$before" ] && break; sleep 1; done
+  [ "$(reloads)" -gt "$before" ]
+}
+
+# The update at startup and the hourly one are independent, so the cron job
+# finding another update running is expected, not an error. PID 1 stands in
+# for the running update.
+@test "checking clamav-unofficial-sigs: cron job is quiet while another update runs" {
+  docker exec mailserver_default /bin/sh -c "echo 1 > /var/lib/clamav-unofficial-sigs/pid/clamav-unofficial-sigs.pid"
+  run sigs_cron_job
+  docker exec mailserver_default rm -f /var/lib/clamav-unofficial-sigs/pid/clamav-unofficial-sigs.pid
+  assert_success
+  assert_output ''
+  run docker exec mailserver_default grep 'clamav-unofficial-sigs.*ERROR' /var/log/mail.log
+  assert_failure
+}
+
 # @test "checking clamav-unofficial-sigs: TEST 1 — Html.Sanesecurity.TestSig_Type3_Bdy" {
 #   run docker exec mailserver_default /bin/sh -c "clamscan --database=/var/lib/clamav/phish.ndb - < /tmp/tests/clamav/test1.eml"
 #   assert_failure
@@ -900,4 +973,38 @@ load 'test_helper/bats-assert/load'
 @test "checking logs: dovecot does not warn about the open files limit (default configuration)" {
   run docker exec mailserver_default grep -h "fd limit" /var/log/mail.warn /var/log/mail.log
   assert_failure
+}
+
+# Last on purpose: these make the clamav-unofficial-sigs cron job fail, which
+# writes to mail.log, mail.warn and mail.err, all checked clean above.
+@test "checking clamav-unofficial-sigs: cron job stderr goes to mail.err" {
+  docker exec mailserver_default chown root /var/lib/clamav-unofficial-sigs/configs/current-dbs.txt
+  run sigs_cron_job
+  docker exec mailserver_default chown clamav /var/lib/clamav-unofficial-sigs/configs/current-dbs.txt
+  assert_success
+  assert_output ''
+  run docker exec mailserver_default grep 'clamav-unofficial-sigs.*current-dbs.txt: Permission denied' /var/log/mail.err
+  assert_success
+}
+
+@test "checking clamav-unofficial-sigs: cron job stdout goes to mail.warning" {
+  docker exec mailserver_default chown root /var/log/clamav-unofficial-sigs/clamav-unofficial-sigs.log
+  run sigs_cron_job
+  docker exec mailserver_default chown clamav /var/log/clamav-unofficial-sigs/clamav-unofficial-sigs.log
+  assert_success
+  assert_output ''
+  run docker exec mailserver_default grep 'clamav-unofficial-sigs.*Logging Disabled' /var/log/mail.warn
+  assert_success
+  run docker exec mailserver_default grep 'clamav-unofficial-sigs.*Logging Disabled' /var/log/mail.err
+  assert_failure
+}
+
+# The job exits with the update's status, not with its loggers'. The update
+# stops straight away when a tool it needs is missing.
+@test "checking clamav-unofficial-sigs: cron job fails when the update fails" {
+  docker exec mailserver_default /bin/sh -c "echo 'clamscan_bin=\"/nonexistent/clamscan\"' >> /etc/clamav-unofficial-sigs/user.conf"
+  run sigs_cron_job
+  docker exec mailserver_default /bin/sh -c "sed -i '/^clamscan_bin=/d' /etc/clamav-unofficial-sigs/user.conf"
+  assert_failure
+  assert_output ''
 }

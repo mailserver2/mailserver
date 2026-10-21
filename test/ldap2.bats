@@ -202,6 +202,17 @@ load 'test_helper/bats-assert/load'
   assert_success
 }
 
+#
+# clamav-unofficial-sigs
+#
+
+# This configuration mounts a user.conf for the signature updater, but ClamAV
+# is disabled, so there is nothing for it to update.
+@test "checking clamav-unofficial-sigs: no cron task when ClamAV is disabled (ldap2 configuration)" {
+  run docker exec mailserver_ldap2 [ -f /etc/cron.d/clamav-unofficial-sigs ]
+  assert_failure
+}
+
 
 #
 # logs
