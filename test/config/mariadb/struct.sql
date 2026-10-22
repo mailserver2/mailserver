@@ -202,6 +202,7 @@ CREATE TABLE `fetchmail` (
   `domain` varchar(255) DEFAULT '',
   `mailbox` varchar(255) NOT NULL,
   `src_server` varchar(255) NOT NULL,
+  `src_port` int(11) NOT NULL DEFAULT 0,
   `src_auth` enum('password','kerberos_v5','kerberos','kerberos_v4','gssapi','cram-md5','otp','ntlm','msn','ssh','any') DEFAULT NULL,
   `src_user` varchar(255) NOT NULL,
   `src_password` varchar(255) NOT NULL,
@@ -231,7 +232,7 @@ CREATE TABLE `fetchmail` (
 
 LOCK TABLES `fetchmail` WRITE;
 /*!40000 ALTER TABLE `fetchmail` DISABLE KEYS */;
-INSERT INTO `fetchmail` VALUES (1,'domain.tld','sarah.connor@domain.tld','127.0.0.1','password','john.doe@domain.tld','dGVzdHBhc3N3ZDEy','',10,1,1,'IMAP',1,0,'','','','','','2016-12-05 11:59:01','2016-12-05 11:58:53','2016-12-05 11:58:53',1);
+INSERT INTO `fetchmail` VALUES (1,'domain.tld','sarah.connor@domain.tld','127.0.0.1',0,'password','john.doe@domain.tld','dGVzdHBhc3N3ZDEy','',10,1,1,'IMAP',1,0,'','','','','','2016-12-05 11:59:01','2016-12-05 11:58:53','2016-12-05 11:58:53',1);
 /*!40000 ALTER TABLE `fetchmail` ENABLE KEYS */;
 UNLOCK TABLES;
 

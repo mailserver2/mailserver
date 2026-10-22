@@ -280,6 +280,7 @@ CREATE TABLE public.fetchmail (
     active boolean DEFAULT false NOT NULL,
     created timestamp with time zone DEFAULT '2000-01-01 00:00:00+00'::timestamp with time zone,
     modified timestamp with time zone DEFAULT now(),
+    src_port integer DEFAULT 0 NOT NULL,
     CONSTRAINT fetchmail_protocol_check CHECK (((protocol)::text = ANY ((ARRAY['POP3'::character varying, 'IMAP'::character varying, 'POP2'::character varying, 'ETRN'::character varying, 'AUTO'::character varying])::text[]))),
     CONSTRAINT fetchmail_src_auth_check CHECK (((src_auth)::text = ANY ((ARRAY['password'::character varying, 'kerberos_v5'::character varying, 'kerberos'::character varying, 'kerberos_v4'::character varying, 'gssapi'::character varying, 'cram-md5'::character varying, 'otp'::character varying, 'ntlm'::character varying, 'msn'::character varying, 'ssh'::character varying, 'any'::character varying])::text[])))
 );

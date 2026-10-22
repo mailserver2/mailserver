@@ -563,6 +563,90 @@ load 'test_helper/bats-assert/load'
 }
 
 #
+# fetchmail
+#
+# These fetch john.doe's INBOX, which moves his mail out of new/, so they come
+# after every test that counts it there.
+
+# Replace the fetchmail table with one job that is due now, fetching the INBOX
+# of $1 (password $2) from this server into sarah.connor@domain.tld, with
+# mda $3, extra_options $4 and src_port $5. PostfixAdmin stores the password in
+# base64. The suite's certificate does not verify, and fetchmail logs that to
+# mail.err even with "no sslcertck", so the jobs use plain IMAP (sslproto '').
+fetchmail_job() {
+  docker exec -i postgres psql -U postfix -d postfix -q -v ON_ERROR_STOP=1 \
+    -v user="$1" -v password="$(printf '%s' "$2" | base64)" -v mda="$3" -v extra="$4" -v port="$5" <<'SQL'
+DELETE FROM fetchmail;
+INSERT INTO fetchmail (mailbox, src_server, src_port, src_auth, src_user, src_password, src_folder, poll_time, fetchall, keep, protocol, mda, extra_options, usessl, active, date)
+VALUES ('sarah.connor@domain.tld', 'localhost', :port, 'password', :'user', :'password', '', 10, true, true, 'IMAP', :'mda', :'extra', false, true, '2000-01-01');
+SQL
+}
+
+# The command cron runs (/etc/cron.d/fetchmail, removed when TESTING=true)
+fetchmail_cron_job() {
+  docker exec mailserver_reverse /usr/bin/perl /usr/local/bin/fetchmail.pl
+}
+
+sarah_mail_count() {
+  docker exec mailserver_reverse /bin/sh -c "find /var/mail/vhosts/domain.tld/sarah.connor/subdir/new /var/mail/vhosts/domain.tld/sarah.connor/subdir/cur -type f 2>/dev/null | wc -l"
+}
+
+# Count the lines of mail.log that match $1, waiting up to 30 seconds for at
+# least $2 of them, since syslog writes them after the job returns
+mail_log_count() {
+  for i in $(seq 30); do
+    n=$(docker exec mailserver_reverse grep -c -- "$1" /var/log/mail.log)
+    [ "$n" -ge "$2" ] && break
+    sleep 1
+  done
+  echo "$n"
+}
+
+# The documented setup (hardware/mailserver#276): port 25 refuses the one
+# message whose sender is a local address that has not logged in, port 10025
+# takes it. src_port only has to be accepted by fetchmail, so it is 143.
+@test "checking fetchmail: a job delivers all its mail through port 10025 (reverse configuration)" {
+  fetchmail_job john.doe@domain.tld testpasswd12 "" "smtp localhost/10025 sslproto ''" 143
+  before=$(sarah_mail_count)
+  run fetchmail_cron_job
+  assert_success
+  for i in $(seq 60); do [ "$(sarah_mail_count)" -ge $((before + 4)) ] && break; sleep 1; done
+  run sarah_mail_count
+  assert_output $((before + 4))
+  run docker exec postgres psql -U postfix -d postfix -Atc "SELECT date > now() - interval '1 hour' FROM fetchmail"
+  assert_output "t"
+}
+
+@test "checking fetchmail: mda dovecot delivers through dovecot's LDA (reverse configuration)" {
+  fetchmail_job john.doe@domain.tld testpasswd12 dovecot "sslproto ''" 0
+  before=$(sarah_mail_count)
+  run fetchmail_cron_job
+  assert_success
+  run sarah_mail_count
+  assert_output $((before + 4))
+  run mail_log_count 'lda(sarah.connor@domain.tld)<.*saved mail to INBOX' 4
+  assert_output 4
+}
+
+# The script escapes " and \ in the password it writes into fetchmail's
+# configuration. A ' still breaks it.
+@test "checking fetchmail: a source password with a double quote and a backslash in it works (reverse configuration)" {
+  password='pa"ss\word'
+  hash=$(docker exec mailserver_reverse doveadm pw -s SHA512-CRYPT -p "$password")
+  docker exec -i postgres psql -U postfix -d postfix -q -v ON_ERROR_STOP=1 -v hash="$hash" <<'SQL'
+INSERT INTO mailbox (username, password, name, maildir, quota, domain, local_part)
+VALUES ('fetch.test@domain.tld', :'hash', 'Fetch TEST', 'domain.tld/fetch.test/', 1024000, 'domain.tld', 'fetch.test');
+SQL
+  fetchmail_job fetch.test@domain.tld "$password" dovecot "sslproto ''" 0
+  run fetchmail_cron_job
+  assert_success
+  run mail_log_count 'imap-login: Logged in: user=<fetch.test@domain.tld>' 1
+  assert_output 1
+  run docker exec mailserver_reverse grep 'Authorization failure' /var/log/mail.log
+  assert_failure
+}
+
+#
 # unbound
 #
 

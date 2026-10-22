@@ -16,15 +16,25 @@ use LockFile::Simple qw(lock trylock unlock);
 # database backend - uncomment one of these
 our $db_type = 'Pg';
 #my $db_type = 'mysql';
+#my $db_type = 'SQLite';
 
-# host name
+# host name (ignored for SQLite)
 our $db_host="127.0.0.1";
-# database name
+# database name (for SQLite: full path to the database file)
 our $db_name="postfix";
 # database username
 our $db_username="mail";
 # database password
 our $db_password="CHANGE_ME!";
+
+# Where to create a lockfile; please ensure path exists.
+our $run_dir="/var/lock/fetchmail";
+
+# in case you want to use dovecot deliver to put the mail directly into the users mailbox,
+# set "mda" in the fetchmail table to the keyword "dovecot".
+
+# Where the delivery binary is located
+$dovecot_deliver = "/usr/lib/dovecot/deliver";
 
 # instead of changing this script, you can put your settings to /etc/mail/postfixadmin/fetchmail.conf
 # just use perl syntax there to fill the variables listed above (without the "our" keyword). Example:
@@ -40,11 +50,23 @@ if (-f "/etc/postfixadmin/fetchmail.conf") {
 openlog("fetchmail-all", "pid", "mail");
 
 sub log_and_die {
-	my($message) = @_;
+  my($message) = @_;
   syslog("err", $message);
   die $message;
 }
 
+sub escape_password {
+    $output = "";
+    for $i (0..length($_[0])-1){
+        $char = substr($_[0], $i, 1);
+        if ($char eq "\\" or $char eq "\"")
+        {
+            $output = $output . "\\";
+        }
+        $output = $output . $char;
+    }
+    return $output;
+}
 # read options and arguments
 
 $configfile = "/etc/fetchmail-all/config";
@@ -59,8 +81,6 @@ while ($_ = shift @ARGS1) {
     }
 }
 
-$run_dir="/var/run/fetchmail";
-
 # use specified config file
 if (-e $configfile) {
     do $configfile;
@@ -68,8 +88,14 @@ if (-e $configfile) {
 
 if($db_type eq "Pg" || $db_type eq "mysql") {
 	$dsn = "DBI:$db_type:database=$db_name;host=$db_host;port=$db_port";
+} elsif($db_type eq "SQLite") {
+	$dsn = "DBI:SQLite:dbname=$db_name";
 } else {
 	log_and_die "unsupported db_type $db_type";
+}
+
+if(!-d $run_dir) {
+    log_and_die("Please create: $run_dir");
 }
 
 $lock_file=$run_dir . "/fetchmail-all.lock";
@@ -84,23 +110,35 @@ if($db_type eq "Pg") {
 	$sql_cond = "active = 't' AND date_part('epoch',now())-date_part('epoch',date)";
 } elsif($db_type eq "mysql") {
 	$sql_cond = "active = 1 AND unix_timestamp(now())-unix_timestamp(date)";
+} elsif($db_type eq "SQLite") {
+	$sql_cond = "active = 1 AND strftime('%s','now')-strftime('%s',date)";
 }
 
+# SQLite has no now()
+$sql_now = ($db_type eq "SQLite") ? "datetime('now')" : "now()";
+
 $sql = "
-	SELECT id,mailbox,src_server,src_auth,src_user,src_password,src_folder,fetchall,keep,protocol,mda,extra_options,usessl, sslcertck, sslcertpath, sslfingerprint
+	SELECT id,mailbox,src_server,src_auth,src_user,src_password,src_folder,fetchall,keep,protocol,mda,extra_options,usessl, sslcertck, sslcertpath, sslfingerprint, src_port
 	FROM fetchmail
 	WHERE $sql_cond  > poll_time*60
 	";
 
 my (%config);
 map{
-	my ($id,$mailbox,$src_server,$src_auth,$src_user,$src_password,$src_folder,$fetchall,$keep,$protocol,$mda,$extra_options,$usessl,$sslcertck,$sslcertpath,$sslfingerprint)=@$_;
+	my ($id,$mailbox,$src_server,$src_auth,$src_user,$src_password,$src_folder,$fetchall,$keep,$protocol,$mda,$extra_options,$usessl,$sslcertck,$sslcertpath,$sslfingerprint,$src_port)=@$_;
 
 	syslog("info","fetch ${src_user}@${src_server} for ${mailbox}");
 
-	$cmd="user '${src_user}' there with password '".decode_base64($src_password)."'";
+	$cmd="user '${src_user}' there with password '".escape_password(decode_base64($src_password))."'";
 	$cmd.=" folder '${src_folder}'" if ($src_folder);
-	$cmd.=" mda ".$mda if ($mda);
+
+	if ($mda) {
+		if ($mda eq "dovecot") {
+			$cmd.=" mda \"${dovecot_deliver} -d ${mailbox}\" ";
+		} else {
+			$cmd.=" mda ".$mda 
+		}
+	}
 
 #	$cmd.=" mda \"/usr/local/libexec/dovecot/deliver -m ${mailbox}\"";
 	$cmd.=" is '${mailbox}' here";
@@ -120,20 +158,21 @@ set no spambounce
 set properties ""
 set syslog
 
-poll ${src_server} with proto ${protocol}
-	$cmd
-
 TXT
+    $text.="poll ${src_server} with proto ${protocol}";
+    $text.=" service ${src_port}" if ($src_port);
+    $text.="\n	$cmd";
+
 
   ($file_handler, $filename) = mkstemp( "/tmp/fetchmail-all-XXXXX" ) or log_and_die "cannot open/create fetchmail temp file";
   print $file_handler $text;
   close $file_handler;
 
-  $ret=`/usr/bin/fetchmail -f $filename -i $run_dir/fetchmail.pid`;
+  $ret=`/usr/bin/fetchmail -f $filename --pidfile $run_dir/fetchmail.pid`;
 
   unlink $filename;
 
-  $sql="UPDATE fetchmail SET returned_text=".$dbh->quote($ret).", date=now() WHERE id=".$id;
+  $sql="UPDATE fetchmail SET returned_text=".$dbh->quote($ret).", date=$sql_now WHERE id=".$id;
   $dbh->do($sql);
 }@{$dbh->selectall_arrayref($sql)};
 
