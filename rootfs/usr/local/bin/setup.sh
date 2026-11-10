@@ -313,12 +313,10 @@ fi
 #
 # Initialize rbl_override configuration
 #
-if [ -d "/etc/postifx/rbl_override" ]; then
-  echo "[ERROR] The `/etc/postfix/rbl_override` is a folder instead of a file.  Please fix it."
-  exit 1;
-fi
-
-if [ ! -f "/etc/postfix/rbl_override" ]; then
+if [ -d "/etc/postfix/rbl_override" ]; then
+  echo "[ERROR] /etc/postfix/rbl_override is a folder instead of a file. Please fix it."
+  touch /etc/setup-error
+elif [ ! -f "/etc/postfix/rbl_override" ]; then
   touch /etc/postfix/rbl_override
   echo "[INFO] Created default (empty) rbl_override file"
 else
