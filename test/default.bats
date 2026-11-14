@@ -781,7 +781,9 @@ sigs_cron_job() {
 @test "checking clamav-unofficial-sigs: cron user's reload waits for clamd to start" {
   reloads() { docker exec mailserver_default grep -c 'Database correctly reloaded' /var/log/clamav/clamav.log || true; }
   before=$(reloads)
-  docker exec mailserver_default /bin/sh -c "s6-svc -d /services/clamd; while pgrep -x clamd > /dev/null; do sleep 0.2; done; s6-svc -u /services/clamd"
+  # Wait for clamd's finish script as well as clamd (-wD): on exit code 0 the
+  # finish script sends its own s6-svc -d, which undoes a -u sent before it.
+  docker exec mailserver_default /bin/sh -c "s6-svc -wD -d /services/clamd; s6-svc -u /services/clamd"
   run docker exec mailserver_default /bin/sh -c ". /etc/clamav-unofficial-sigs/os.conf; user=\$(grep -v '^#' /etc/cron.d/clamav-unofficial-sigs | grep . | awk '{print \$6}'); su -s /bin/sh \"\$user\" -c \"\$clamd_reload_opt\""
   assert_success
   refute_output --partial 'ERROR'
