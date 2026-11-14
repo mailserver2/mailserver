@@ -252,6 +252,7 @@ non_smtpd_milters     = inet:localhost:11332
 ############
 
 content_filter = zeyple
+zeyple_destination_recipient_limit = 1
 
 #######################
 ## YOUR CUSTOM RULES ##

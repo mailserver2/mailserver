@@ -581,8 +581,9 @@ if [ "$ENABLE_ENCRYPTION" = true ]; then
   # Create all files and directories needed by Zeyple
   mkdir -p /var/mail/zeyple/keys
   chmod 700 /var/mail/zeyple/keys
-  chmod 744 /usr/local/bin/zeyple.py
-  chown -R zeyple:zeyple /var/mail/zeyple /usr/local/bin/zeyple.py
+  chmod 755 /usr/local/bin/zeyple.py
+  chown root:root /usr/local/bin/zeyple.py
+  chown -R zeyple:zeyple /var/mail/zeyple
 
   if [ "$TESTING" = true ]; then
 
