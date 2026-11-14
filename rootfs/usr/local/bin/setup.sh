@@ -486,6 +486,10 @@ if [ "$TESTING" = true ]; then
   sed -i 's|\(log_file.*=\).*|\1 /var/log/zeyple.log|' /etc/zeyple.conf
   # Disable fetchmail scheduled Task
   rm -f /etc/cron.d/fetchmail
+  # The external test mails come from user@gmail.com, which MSBL's email
+  # blocklist lists. Its score would file them into Spam and break the
+  # delivery counts, so keep the suites independent of that list.
+  echo 'rbls { MSBL_EBL { enabled = false; } }' > /etc/rspamd/local.d/rbl.conf
   # Ignore temporary dns failure in rspamd
   sed -i '/$IncludeConfig/a :msg,contains,"Temporary failure in name resolution" ~' /etc/rsyslog/rsyslog.conf
   sed -i '/$IncludeConfig/a :msg,contains,"cannot read servers definition" ~' /etc/rsyslog/rsyslog.conf
