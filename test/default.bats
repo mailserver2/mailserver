@@ -61,10 +61,32 @@ load 'test_helper/bats-assert/load'
     -e TESTING=true \
     --tmpfs /etc/postfix/rbl_override \
     -h mail.domain.tld \
-    mailserver2/mailserver:testing
+    "${MAILSERVER_IMAGE:-mailserver2/mailserver:testing}"
   docker rm -f mailserver_default_rbl_dir > /dev/null 2>&1 || true
   assert_failure 1
   assert_output --partial "[ERROR] /etc/postfix/rbl_override is a folder instead of a file"
+}
+
+# Without the map, Postfix answers RCPT from clients outside mynetworks with
+# 451 4.3.5, so a failed postmap must stop startup. A directory mounted where
+# the .db goes makes postmap fail.
+@test "checking system: startup stops when the rbl_override map cannot be built" {
+  run timeout 180 docker run --rm \
+    --name mailserver_default_rbl_db \
+    --link mariadb:mariadb \
+    --link redis:redis \
+    -e DBPASS=testpasswd \
+    -e RSPAMD_PASSWORD=testpasswd \
+    -e VMAILUID=`id -u` \
+    -e VMAILGID=`id -g` \
+    -e DISABLE_CLAMAV=true \
+    -e TESTING=true \
+    --tmpfs /etc/postfix/rbl_override.db \
+    -h mail.domain.tld \
+    "${MAILSERVER_IMAGE:-mailserver2/mailserver:testing}"
+  docker rm -f mailserver_default_rbl_db > /dev/null 2>&1 || true
+  assert_failure 1
+  assert_output --partial "[ERROR] Could not build the rbl_override map"
 }
 
 #

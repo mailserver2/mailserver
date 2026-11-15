@@ -424,6 +424,20 @@ load 'test_helper/bats-assert/load'
   assert_success
 }
 
+# By default postmap drops root privileges and runs as the source file's owner,
+# who cannot write the .db into /etc/postfix. The fixture is bind-mounted from
+# the checkout, so it belongs to the user running the suite; the first check
+# makes sure that is not root, or this test could not fail.
+@test "checking postfix: rbl_override map is built from a file not owned by root" {
+  run docker exec mailserver_reverse stat -c %u /etc/postfix/rbl_override
+  assert_success
+  refute_output "0"
+
+  run docker exec mailserver_reverse postmap -q 192.0.2.1 hash:/etc/postfix/rbl_override
+  assert_success
+  assert_output "OK"
+}
+
 #
 # dovecot
 #

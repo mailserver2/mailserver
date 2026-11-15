@@ -332,6 +332,7 @@ init_reverse: init_redis init_postgres
 		-v "`pwd`/test/share/passwd":/tmp/passwd \
 		-v "`pwd`/test/share/ssl/rsa":/var/mail/ssl \
 		-v "`pwd`/test/share/sieve/custom.sieve":/var/mail/sieve/custom.sieve \
+		-v "`pwd`/test/share/postfix/rbl_override":/etc/postfix/rbl_override \
 		-v "`pwd`/test/share/letsencrypt":/etc/letsencrypt \
 		-t $(NAME)
 fixtures_reverse:
@@ -556,7 +557,8 @@ fixtures_default:
 	@timeout $(WAIT_TIMEOUT) sh -c 'until [ -z "$$(docker exec mailserver_default find /var/spool/postfix/incoming /var/spool/postfix/active /var/spool/postfix/maildrop -type f 2>/dev/null)" ]; do sleep 2; done' \
 		|| { echo "TIMEOUT: postfix queue did not drain"; docker exec mailserver_default postqueue -p; exit 1; }
 run_default:
-	./test/bats/bin/bats test/default.bats
+	# Some tests start their own container, from this image
+	MAILSERVER_IMAGE=$(NAME) ./test/bats/bin/bats test/default.bats
 stop_default:
 	-docker rm -fv \
 		mailserver_default || true
