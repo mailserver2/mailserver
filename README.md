@@ -431,7 +431,9 @@ When using LDAP authentication the following additional variables become availab
 
 #### How does it work ?
 
-[Zeyple](https://infertux.com/labs/zeyple/) catches email from the postfix queue, then encrypts it if a corresponding recipient's GPG public key is found. Finally, it puts it back into the queue.
+[Zeyple 3.0.0](https://github.com/infertux/zeyple/releases/tag/v3.0.0) catches email from the postfix queue, then encrypts it if a corresponding recipient's GPG public key is found. Finally, it puts it back into the queue.
+
+For subaddresses such as `user+tag@example.com`, Zeyple also looks up the key for `user@example.com`.
 
 ![zeyple](https://i.imgur.com/gGQZL4V.png)
 

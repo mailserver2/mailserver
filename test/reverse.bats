@@ -480,6 +480,12 @@ load 'test_helper/bats-assert/load'
   assert_success
 }
 
+@test "checking zeyple: zeyple.py is owned by root and not writable by zeyple" {
+  run docker exec mailserver_reverse stat -c '%U:%G %a' /usr/local/bin/zeyple.py
+  assert_success
+  assert_output "root:root 755"
+}
+
 @test "checking zeyple: zeyple.log exist (reverse configuration)" {
   run docker exec mailserver_reverse [ -f /var/log/zeyple.log ]
   assert_success
@@ -501,6 +507,12 @@ load 'test_helper/bats-assert/load'
   assert_output "zeyple"
 }
 
+@test "checking zeyple: one recipient per invocation" {
+  run docker exec mailserver_reverse postconf -h zeyple_destination_recipient_limit
+  assert_success
+  assert_output 1
+}
+
 @test "checking zeyple: user zeyple exist (reverse configuration)" {
   run docker exec mailserver_reverse /bin/sh -c "id -u zeyple"
   assert_success
@@ -518,16 +530,22 @@ load 'test_helper/bats-assert/load'
   assert_output 1
 }
 
-@test "checking zeyple: 3 emails encrypted in john.doe folder" {
+@test "checking zeyple: 4 emails encrypted in john.doe folder (including +subaddress)" {
   run docker exec mailserver_reverse /bin/sh -c "gzip -cd /var/mail/vhosts/domain.tld/john.doe/subdir/new/* | grep -i 'multipart/encrypted' | wc -l"
   assert_success
-  assert_output 3
+  assert_output 4
   run docker exec mailserver_reverse /bin/sh -c "gzip -cd /var/mail/vhosts/domain.tld/john.doe/subdir/new/* | grep -i 'BEGIN PGP MESSAGE' | wc -l"
   assert_success
-  assert_output 3
+  assert_output 4
   run docker exec mailserver_reverse /bin/sh -c "gzip -cd /var/mail/vhosts/domain.tld/john.doe/subdir/new/* | grep -i 'END PGP MESSAGE' | wc -l"
   assert_success
-  assert_output 3
+  assert_output 4
+}
+
+@test "checking zeyple: no emails sent unencrypted" {
+  run docker exec mailserver_reverse /bin/sh -c "grep -i 'message will be sent unencrypted' /var/log/zeyple.log | wc -l"
+  assert_success
+  assert_output 0
 }
 
 #
