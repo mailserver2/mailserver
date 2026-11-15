@@ -45,6 +45,50 @@ load 'test_helper/bats-assert/load'
   assert_failure
 }
 
+# A bind mount whose host file is missing makes Docker create a directory in its
+# place, and Postfix cannot use that as a map. The timeout turns a container that
+# starts anyway into a failed test rather than a hung suite.
+@test "checking system: startup stops when rbl_override is a directory" {
+  run timeout 180 docker run --rm \
+    --name mailserver_default_rbl_dir \
+    --link mariadb:mariadb \
+    --link redis:redis \
+    -e DBPASS=testpasswd \
+    -e RSPAMD_PASSWORD=testpasswd \
+    -e VMAILUID=`id -u` \
+    -e VMAILGID=`id -g` \
+    -e DISABLE_CLAMAV=true \
+    -e TESTING=true \
+    --tmpfs /etc/postfix/rbl_override \
+    -h mail.domain.tld \
+    "${MAILSERVER_IMAGE:-mailserver2/mailserver:testing}"
+  docker rm -f mailserver_default_rbl_dir > /dev/null 2>&1 || true
+  assert_failure 1
+  assert_output --partial "[ERROR] /etc/postfix/rbl_override is a folder instead of a file"
+}
+
+# Without the map, Postfix answers RCPT from clients outside mynetworks with
+# 451 4.3.5, so a failed postmap must stop startup. A directory mounted where
+# the .db goes makes postmap fail.
+@test "checking system: startup stops when the rbl_override map cannot be built" {
+  run timeout 180 docker run --rm \
+    --name mailserver_default_rbl_db \
+    --link mariadb:mariadb \
+    --link redis:redis \
+    -e DBPASS=testpasswd \
+    -e RSPAMD_PASSWORD=testpasswd \
+    -e VMAILUID=`id -u` \
+    -e VMAILGID=`id -g` \
+    -e DISABLE_CLAMAV=true \
+    -e TESTING=true \
+    --tmpfs /etc/postfix/rbl_override.db \
+    -h mail.domain.tld \
+    "${MAILSERVER_IMAGE:-mailserver2/mailserver:testing}"
+  docker rm -f mailserver_default_rbl_db > /dev/null 2>&1 || true
+  assert_failure 1
+  assert_output --partial "[ERROR] Could not build the rbl_override map"
+}
+
 #
 # processes (default configuration)
 #
@@ -520,6 +564,11 @@ load 'test_helper/bats-assert/load'
   run docker exec mailserver_default /bin/sh -c "postconf -h readme_directory"
   assert_success
   assert_output "/tmp"
+}
+
+@test "checking postfix: rbl_override map is built when none is provided" {
+  run docker exec mailserver_default test -f /etc/postfix/rbl_override.db
+  assert_success
 }
 
 @test "checking postfix: headers cleanup" {
