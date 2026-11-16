@@ -20,3 +20,7 @@ jobs:
 
       - name: Run tests
         run: make reverse
+
+      - name: Print container logs
+        if: failure()
+        run: make logs

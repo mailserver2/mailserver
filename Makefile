@@ -628,3 +628,17 @@ stop_sieve:
 clean:
 	docker images --quiet --filter=dangling=true | xargs --no-run-if-empty docker rmi
 	docker volume ls -qf dangling=true | xargs -r docker volume rm
+
+# Print the output of the test containers still on this host. CI runs this
+# when a suite fails: make stops at the failing target, before the suite's
+# stop_ target, so its containers are still here. The mailserver image's
+# rsyslog copies all mail.* logging to the container's output, so this
+# includes mail.log, with the time Docker received each line. The listing of
+# /var/log shows when each log file was last written.
+logs:
+	@for c in $$(docker ps -a --format '{{.Names}}' | grep -E '^(mailserver_.*|mariadb|redis|postgres|openldap)$$'); do \
+		echo "::group::$$c"; \
+		docker logs --timestamps $$c 2>&1; \
+		case $$c in mailserver_*) docker exec $$c ls -l --full-time /var/log 2>&1 ;; esac; \
+		echo "::endgroup::"; \
+	done
