@@ -20,3 +20,7 @@ jobs:
 
       - name: Run tests
         run: make ecdsa
+
+      - name: Print container logs
+        if: failure()
+        run: make logs

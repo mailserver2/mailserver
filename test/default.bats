@@ -801,6 +801,14 @@ sigs_cron_job() {
   docker exec mailserver_default /bin/sh -c "grep -v '^#' /etc/cron.d/clamav-unofficial-sigs | grep . | { read -r m h dom mon dow user cmd; su -s /bin/sh \"\$user\" -c \"\$cmd\"; }"
 }
 
+# The job's logger only hands each line to rsyslog, which writes it to the log
+# files afterwards, so a grep made as soon as the job returns can run before
+# the line is there. This waits up to 10 s for a line matching $1 in file $2,
+# then greps for it, so a failure still shows grep's own output.
+wait_for_log() {
+  docker exec mailserver_default /bin/sh -c 'for i in $(seq 50); do grep -q -- "$1" "$2" 2>/dev/null && break; sleep 0.2; done; grep -- "$1" "$2"' sh "$1" "$2"
+}
+
 # cron mails anything the job prints to clamav@<FQDN>, which nobody reads and
 # which rspamd scans on the way (throwing off its counters above), so the job
 # must print nothing.
@@ -1034,7 +1042,7 @@ sigs_cron_job() {
   docker exec mailserver_default chown clamav /var/lib/clamav-unofficial-sigs/configs/current-dbs.txt
   assert_success
   assert_output ''
-  run docker exec mailserver_default grep 'clamav-unofficial-sigs.*current-dbs.txt: Permission denied' /var/log/mail.err
+  run wait_for_log 'clamav-unofficial-sigs.*current-dbs.txt: Permission denied' /var/log/mail.err
   assert_success
 }
 
@@ -1044,7 +1052,7 @@ sigs_cron_job() {
   docker exec mailserver_default chown clamav /var/log/clamav-unofficial-sigs/clamav-unofficial-sigs.log
   assert_success
   assert_output ''
-  run docker exec mailserver_default grep 'clamav-unofficial-sigs.*Logging Disabled' /var/log/mail.warn
+  run wait_for_log 'clamav-unofficial-sigs.*Logging Disabled' /var/log/mail.warn
   assert_success
   run docker exec mailserver_default grep 'clamav-unofficial-sigs.*Logging Disabled' /var/log/mail.err
   assert_failure

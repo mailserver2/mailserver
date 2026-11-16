@@ -17,3 +17,7 @@ jobs:
 
       - name: Run all tests
         run: make
+
+      - name: Print container logs
+        if: failure()
+        run: make logs
