@@ -805,8 +805,18 @@ sigs_cron_job() {
 # files afterwards, so a grep made as soon as the job returns can run before
 # the line is there. This waits up to 10 s for a line matching $1 in file $2,
 # then greps for it, so a failure still shows grep's own output.
+#
+# The first check is a single grep, as these tests used to make. When it
+# misses, the wait is written to the test output (a TAP comment), so passing
+# runs still show how late rsyslog was, and how often.
 wait_for_log() {
-  docker exec mailserver_default /bin/sh -c 'for i in $(seq 50); do grep -q -- "$1" "$2" 2>/dev/null && break; sleep 0.2; done; grep -- "$1" "$2"' sh "$1" "$2"
+  if ! docker exec mailserver_default grep -q -- "$1" "$2" 2>/dev/null; then
+    local start found
+    start=$(date +%s%N)
+    docker exec mailserver_default /bin/sh -c 'for i in $(seq 50); do grep -q -- "$1" "$2" 2>/dev/null && exit 0; sleep 0.2; done; exit 1' sh "$1" "$2" && found="appeared after" || found="still missing after"
+    echo "# wait_for_log: '$1' was not in $2 at first, $found $(( ($(date +%s%N) - start) / 1000000 )) ms" >&3
+  fi
+  docker exec mailserver_default grep -- "$1" "$2"
 }
 
 # cron mails anything the job prints to clamav@<FQDN>, which nobody reads and
