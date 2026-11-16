@@ -838,7 +838,7 @@ sed -i 's|invoke-rc.d clamav-daemon reload-log|s6-svc -h /services/clamd|g' /etc
 sed -i 's|invoke-rc.d clamav-freshclam reload-log|s6-svc -h /services/freshclam|g' /etc/logrotate.d/clamav-freshclam
 
 # Folders and permissions
-mkdir -p /var/run/fetchmail
+mkdir -p /var/lock/fetchmail
 chmod +x /usr/local/bin/*
 
 # Ensure that hashes are calculated because Postfix require directory
