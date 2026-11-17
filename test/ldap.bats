@@ -284,25 +284,25 @@ load 'test_helper/bats-assert/load'
   assert_output 1
 }
 
-@test "checking smtp: delivers mail to existing forward (ldap configuration)" {
+@test "checking smtp: delivers mail to existing forward to john.doe (ldap configuration)" {
   run docker exec mailserver_ldap /bin/sh -c "grep 'to=<john.doe@domain.tld>, orig_to=<hostmaster@domain.tld>' /var/log/mail.log | grep 'status=sent' | wc -l"
   assert_success
   assert_output 1
 }
 
-@test "checking smtp: delivers mail to existing alias (ldap configuration)" {
+@test "checking smtp: delivers mail to existing alias to john.doe (ldap configuration)" {
   run docker exec mailserver_ldap /bin/sh -c "grep 'to=<john.doe@domain.tld>, orig_to=<postmaster@domain.tld>' /var/log/mail.log | grep 'status=sent' | wc -l"
   assert_success
   assert_output 1
 }
 
-@test "checking smtp: delivers mail to existing forward (ldap configuration)" {
+@test "checking smtp: delivers mail to existing forward to john.connor (ldap configuration)" {
   run docker exec mailserver_ldap /bin/sh -c "grep 'to=<john.connor@domain.tld>, orig_to=<hostmaster@domain.tld>' /var/log/mail.log | grep 'status=sent' | wc -l"
   assert_success
   assert_output 1
 }
 
-@test "checking smtp: delivers mail to existing alias (ldap configuration)" {
+@test "checking smtp: delivers mail to existing alias to john.connor (ldap configuration)" {
   run docker exec mailserver_ldap /bin/sh -c "grep 'to=<john.connor@domain.tld>, orig_to=<postmaster@domain.tld>' /var/log/mail.log | grep 'status=sent' | wc -l"
   assert_success
   assert_output 1
