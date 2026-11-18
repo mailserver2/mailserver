@@ -10,12 +10,12 @@ Please note we have a code of conduct, please follow it in all your interactions
 - Fork this repository
 - Create a new feature branch for a new functionality or bugfix
 - Code...
-- Add integration tests in test/tests.bats
+- Add integration tests in test/*.bats
 - Use `make` to build image locally and run tests
 - Document your improvements
 - Commit your changes
 - Push your code and open a new pull request
-- Use [issues](https://github.com/hardware/mailserver/issues) for any questions
+- Use [issues](https://github.com/mailserver2/mailserver/issues) for any questions
 
 ## Licensing
 
